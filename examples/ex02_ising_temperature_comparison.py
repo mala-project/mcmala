@@ -1,7 +1,14 @@
 from mcmala import MonteCarloSimulation, IsingGrid, IsingModelConfigurations, \
-    IsingModelEvaluator, boltzmannConstant
+    IsingModelEvaluator
+from ase.units import kB
 import matplotlib.pyplot as plt
 import numpy as np
+
+"""
+ex02_ising_temperature_comparison: Runs a MC simulation of the Ising model
+for multiple temperatures and gives the observables (currently only energy) 
+for them.
+"""
 
 # Calculate energies over a range of temperatures.
 temperatures = list(np.arange(2.0, 30.0, 2.0))
@@ -15,7 +22,7 @@ for temperature in temperatures:
 
     # Perform a MC simulation at a certain temperature, using only one Markov
     # Chain.
-    simulation = MonteCarloSimulation(temperature/boltzmannConstant, evaluator,
+    simulation = MonteCarloSimulation(temperature/kB, evaluator,
                                       suggester, inital_configuration, 1)
     simulation.run(10000)
     energies.append(simulation.energy)

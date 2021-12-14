@@ -1,6 +1,12 @@
 from mcmala import MonteCarloSimulation, IsingGrid, IsingModelConfigurations, \
-    IsingModelEvaluator, boltzmannConstant
+    IsingModelEvaluator
+from ase.units import kB
 import matplotlib.pyplot as plt
+
+"""
+ex01_ising_singleshot: Performs and visualizes one MC simulation of the 
+Ising model at a specific temperature.
+"""
 
 # Simple Ising Model.
 inital_configuration = IsingGrid(20, initType="negative")
@@ -9,7 +15,7 @@ suggester = IsingModelConfigurations()
 
 # Perform a MC simulation at a certain temperature, using only one Markov
 # Chain.
-simulation = MonteCarloSimulation(10.0/boltzmannConstant, evaluator,
+simulation = MonteCarloSimulation(10.0/kB, evaluator,
                                   suggester, inital_configuration, 1)
 simulation.run(5000, print_energies=True)
 
