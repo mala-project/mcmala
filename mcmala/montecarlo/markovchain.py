@@ -29,6 +29,7 @@ class MarkovChain:
 
     def run(self, steps_to_evolve, print_energies=False):
         energy = self.evaluator.get_total_energy(self.configuration)
+        self.averaged_energy = energy
         accepted_steps = 1
         for step in range(0, steps_to_evolve):
             new_configuration = self.configuration_suggester.\
@@ -40,7 +41,7 @@ class MarkovChain:
             if self.check_acceptance(deltaE):
                 energy = new_energy
                 accepted_steps += 1
-                averaged_energy = ((self.averaged_energy*(accepted_steps-1)) +
+                self.averaged_energy = ((self.averaged_energy*(accepted_steps-1)) +
                                    energy)/accepted_steps
 
                 if print_energies is True:
