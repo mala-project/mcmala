@@ -1,4 +1,4 @@
-from mcmala import MonteCarloSimulation, IsingGrid, IsingModelConfigurations, \
+from mcmala import MarkovChain, IsingGrid, IsingModelConfigurations, \
     IsingModelEvaluator
 from ase.units import kB
 import matplotlib.pyplot as plt
@@ -15,10 +15,10 @@ suggester = IsingModelConfigurations()
 
 # Perform a MC simulation at a certain temperature, using only one Markov
 # Chain.
-simulation = MonteCarloSimulation(10.0/kB, evaluator,
-                                  suggester, inital_configuration, 1)
+simulation = MarkovChain(10.0/kB, evaluator,
+                                  suggester, inital_configuration)
 simulation.run(5000, print_energies=True)
 
 # Visualize the result. The initial configuration is all negative.
-simulation.markov_chains[0].configuration.visualize()
+simulation.configuration.visualize()
 plt.show()

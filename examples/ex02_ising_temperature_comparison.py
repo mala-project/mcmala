@@ -1,4 +1,4 @@
-from mcmala import MonteCarloSimulation, IsingGrid, IsingModelConfigurations, \
+from mcmala import MarkovChain, IsingGrid, IsingModelConfigurations, \
     IsingModelEvaluator
 from ase.units import kB
 import matplotlib.pyplot as plt
@@ -22,8 +22,8 @@ for temperature in temperatures:
 
     # Perform a MC simulation at a certain temperature, using only one Markov
     # Chain.
-    simulation = MonteCarloSimulation(temperature/kB, evaluator,
-                                      suggester, inital_configuration, 1)
+    simulation = MarkovChain(temperature/kB, evaluator, suggester,
+                             inital_configuration)
     simulation.run(10000)
     energies.append(simulation.energy)
     print(temperature, simulation.energy)
