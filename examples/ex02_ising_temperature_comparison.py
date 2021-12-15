@@ -25,8 +25,8 @@ for temperature in temperatures:
     simulation = MarkovChain(temperature/kB, evaluator, suggester,
                              inital_configuration)
     simulation.run(10000, save_run=False)
-    energies.append(simulation.energy)
-    print(temperature, simulation.energy)
+    energies.append(simulation.total_energy)
+    print(temperature, simulation.total_energy)
 
 # Visualize the result.
 fig = plt.figure(figsize=(9, 9))

@@ -5,13 +5,14 @@ from ase.units import kB
 import numpy as np
 
 from mcmala import Evaluator, ConfigurationSuggester
+from datetime import datetime
 
 
 class MarkovChain:
     def __init__(self, temperatureK, evaluator: Evaluator,
                  configuration_suggester: ConfigurationSuggester,
                  initial_configuration, calculate_observables_after_steps=1,
-                 id="mcmala_default"):
+                 markov_chain_id="mcmala_default"):
         """
         Represent a single Markov chain.
 
@@ -41,10 +42,10 @@ class MarkovChain:
         self.configuration = initial_configuration
         self.calculate_observables_after_steps = \
             calculate_observables_after_steps
-        self.id = str(id)
+        self.id = str(markov_chain_id)
 
         # Observables.
-        self.observables = {"energy": 0}
+        self.observables = {"total_energy": 0}
 
     def run(self, steps_to_evolve, print_energies=False,
             save_run=True):
@@ -65,8 +66,10 @@ class MarkovChain:
 
         """
         print("Starting Markov chain "+self.id+".")
+        start_time = datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
+
         energy = self.evaluator.get_total_energy(self.configuration)
-        self.observables["energy"] = energy
+        self.observables["total_energy"] = energy
         accepted_steps = 1
         for step in range(0, steps_to_evolve):
             new_configuration = self.configuration_suggester.\
@@ -78,13 +81,15 @@ class MarkovChain:
             if self.__check_acceptance(deltaE):
                 energy = new_energy
                 accepted_steps += 1
-                self.observables["energy"] = ((self.observables["energy"]
+                self.observables["total_energy"] =\
+                    ((self.observables["total_energy"]
                                                * (accepted_steps - 1)) +
                                                 energy) / accepted_steps
 
                 if print_energies is True:
                     print("Accepted step, energy is now: ", energy)
                 self.configuration = new_configuration
+        end_time = datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
 
         print("Markov chain", self.id, "finished, saving results.")
         if save_run:
@@ -94,7 +99,9 @@ class MarkovChain:
                 "temperature": self.temperatureK,
                 "configuration type": type(self.configuration).__name__,
                 "configuration suggester": type(self.configuration_suggester).__name__,
-                "evaluator": type(self.evaluator).__name__
+                "evaluator": type(self.evaluator).__name__,
+                "start_time": start_time,
+                "end_time": end_time,
             }
             self.__save_run(metadata)
 
@@ -116,8 +123,8 @@ class MarkovChain:
 
     # Properties (Observables)
     @property
-    def energy(self):
-        """Control whether a heartbeat is used for distributed optuna runs."""
+    def total_energy(self):
+        """Total energy of the system in eV."""
         return self.observables["energy"]
 
 

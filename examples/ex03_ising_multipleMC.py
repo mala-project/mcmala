@@ -1,5 +1,5 @@
 from mcmala import MarkovChain, IsingGrid, IsingModelConfigurations, \
-    IsingModelEvaluator
+    IsingModelEvaluator, Averager
 from ase.units import kB
 
 """
@@ -16,11 +16,17 @@ suggester = IsingModelConfigurations()
 # Naturally, in production settings, these two runs would be in separate
 # files. The Markov chains will have to have different IDs or elsewise,
 # the second Markov chain will overwrite the first one.
-simulation = MarkovChain(10.0/kB, evaluator, suggester, inital_configuration,
-                         id="ex03_mc01")
-simulation.run(100)
+simulation = MarkovChain(10.0 / kB, evaluator, suggester, inital_configuration,
+                         markov_chain_id="ex03_mc01")
+simulation.run(5000)
 
-simulation = MarkovChain(10.0/kB, evaluator, suggester, inital_configuration,
-                         id="ex03_mc02")
-simulation.run(100)
+simulation = MarkovChain(10.0 / kB, evaluator, suggester, inital_configuration,
+                         markov_chain_id="ex03_mc02")
+simulation.run(5000)
 
+# After having run these two, an Averager object can be used to calculate the
+# observables.
+averager = Averager()
+averager.add_markov_chain("ex03_mc01")
+averager.add_markov_chain("ex03_mc02")
+print(averager.total_energy)
