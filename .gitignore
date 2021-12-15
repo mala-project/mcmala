@@ -129,3 +129,6 @@ dmypy.json
 .pyre/
 
 .idea
+
+# JSON files used to save results of Markov chains
+*.json

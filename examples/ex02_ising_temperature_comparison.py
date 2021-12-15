@@ -24,7 +24,7 @@ for temperature in temperatures:
     # Chain.
     simulation = MarkovChain(temperature/kB, evaluator, suggester,
                              inital_configuration)
-    simulation.run(10000)
+    simulation.run(10000, save_run=False)
     energies.append(simulation.energy)
     print(temperature, simulation.energy)
 

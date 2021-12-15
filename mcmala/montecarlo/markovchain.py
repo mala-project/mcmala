@@ -1,4 +1,5 @@
 from random import random
+import json
 
 from ase.units import kB
 import numpy as np
@@ -9,7 +10,8 @@ from mcmala import Evaluator, ConfigurationSuggester
 class MarkovChain:
     def __init__(self, temperatureK, evaluator: Evaluator,
                  configuration_suggester: ConfigurationSuggester,
-                 initial_configuration, calculate_observables_after_steps=1):
+                 initial_configuration, calculate_observables_after_steps=1,
+                 id="mcmala_default"):
         """
         Represent a single Markov chain.
 
@@ -39,11 +41,13 @@ class MarkovChain:
         self.configuration = initial_configuration
         self.calculate_observables_after_steps = \
             calculate_observables_after_steps
+        self.id = str(id)
 
         # Observables.
-        self.energy = 0.0
+        self.observables = {"energy": 0}
 
-    def run(self, steps_to_evolve, print_energies=False):
+    def run(self, steps_to_evolve, print_energies=False,
+            save_run=True):
         """
         Run this Markov chain for a specified number of steps.
 
@@ -55,9 +59,14 @@ class MarkovChain:
         print_energies : bool
             If True, the energies are printed at each step of the simulation.
 
+        save_run : bool
+            Is True by default; if False, the run will not be saved (e.g.
+            for examples and such).
+
         """
+        print("Starting Markov chain "+self.id+".")
         energy = self.evaluator.get_total_energy(self.configuration)
-        self.energy = energy
+        self.observables["energy"] = energy
         accepted_steps = 1
         for step in range(0, steps_to_evolve):
             new_configuration = self.configuration_suggester.\
@@ -69,12 +78,32 @@ class MarkovChain:
             if self.__check_acceptance(deltaE):
                 energy = new_energy
                 accepted_steps += 1
-                self.energy = ((self.energy * (accepted_steps - 1)) +
-                               energy) / accepted_steps
+                self.observables["energy"] = ((self.observables["energy"]
+                                               * (accepted_steps - 1)) +
+                                                energy) / accepted_steps
 
                 if print_energies is True:
                     print("Accepted step, energy is now: ", energy)
                 self.configuration = new_configuration
+
+        print("Markov chain", self.id, "finished, saving results.")
+        if save_run:
+            # Construct meta data.
+            metadata = {
+                "id": self.id,
+                "temperature": self.temperatureK,
+                "configuration type": type(self.configuration).__name__,
+                "configuration suggester": type(self.configuration_suggester).__name__,
+                "evaluator": type(self.evaluator).__name__
+            }
+            self.__save_run(metadata)
+
+    def __save_run(self, metadata):
+        save_dict = {"metadata": metadata, "averaged_observables":
+                    self.observables}
+        with open(self.id+".json", "w", encoding="utf-8") as f:
+            json.dump(save_dict, f, ensure_ascii=False, indent=4)
+        pass
 
     def __check_acceptance(self, deltaE):
         if deltaE > 0.0:
@@ -84,5 +113,12 @@ class MarkovChain:
             if probability < randomNumber:
                 return False
         return True
+
+    # Properties (Observables)
+    @property
+    def energy(self):
+        """Control whether a heartbeat is used for distributed optuna runs."""
+        return self.observables["energy"]
+
 
 

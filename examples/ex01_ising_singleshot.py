@@ -15,9 +15,8 @@ suggester = IsingModelConfigurations()
 
 # Perform a MC simulation at a certain temperature, using only one Markov
 # Chain.
-simulation = MarkovChain(10.0/kB, evaluator,
-                                  suggester, inital_configuration)
-simulation.run(5000, print_energies=True)
+simulation = MarkovChain(10.0/kB, evaluator, suggester, inital_configuration)
+simulation.run(5000, print_energies=True, save_run=False)
 
 # Visualize the result. The initial configuration is all negative.
 simulation.configuration.visualize()
