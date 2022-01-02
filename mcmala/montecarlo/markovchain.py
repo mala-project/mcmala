@@ -2,14 +2,15 @@ from random import random
 import json
 
 from ase.units import kB
+from ase.calculators.calculator import Calculator
 import numpy as np
 
-from mcmala import Evaluator, ConfigurationSuggester
+from mcmala import ConfigurationSuggester
 from datetime import datetime
 
 
 class MarkovChain:
-    def __init__(self, temperatureK, evaluator: Evaluator,
+    def __init__(self, temperatureK, evaluator: Calculator,
                  configuration_suggester: ConfigurationSuggester,
                  initial_configuration, calculate_observables_after_steps=1,
                  markov_chain_id="mcmala_default"):
@@ -21,7 +22,7 @@ class MarkovChain:
         temperatureK : float
             Temperature in Kelvin.
 
-        evaluator : mcmala.simulation.evaluator.Evaluator
+        evaluator : ase.calculators.calculator.Calculator
             Evaluator object used to calculate the total energy.
 
         configuration_suggester : mcmala.simulation.configuration_suggester.ConfigurationSuggester
@@ -68,14 +69,16 @@ class MarkovChain:
         print("Starting Markov chain "+self.id+".")
         start_time = datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
 
-        energy = self.evaluator.get_total_energy(self.configuration)
+        self.evaluator.calculate(self.configuration)
+        energy = self.evaluator.results["energy"]
         self.observables["total_energy"] = energy
         accepted_steps = 1
         for step in range(0, steps_to_evolve):
             new_configuration = self.configuration_suggester.\
                 suggest_new_configuration(self.configuration)
 
-            new_energy = self.evaluator.get_total_energy(new_configuration)
+            self.evaluator.calculate(self.configuration)
+            new_energy = self.evaluator.results["energy"]
             deltaE = new_energy - energy
 
             if self.__check_acceptance(deltaE):
@@ -125,7 +128,7 @@ class MarkovChain:
     @property
     def total_energy(self):
         """Total energy of the system in eV."""
-        return self.observables["energy"]
+        return self.observables["total_energy"]
 
 
 

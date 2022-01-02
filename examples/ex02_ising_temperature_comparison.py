@@ -11,7 +11,7 @@ for them.
 """
 
 # Calculate energies over a range of temperatures.
-temperatures = list(np.arange(2.0, 30.0, 2.0))
+temperatures = list(np.arange(2.0, 14.0, 1.0))
 energies = []
 
 for temperature in temperatures:

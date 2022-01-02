@@ -7,7 +7,7 @@ from copy import deepcopy
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .evaluator import Evaluator
+from ase.calculators.calculator import Calculator
 from .configuration_suggester import ConfigurationSuggester
 
 
@@ -86,7 +86,7 @@ class IsingGrid:
         return ax
 
 
-class IsingModelEvaluator(Evaluator):
+class IsingModelEvaluator(Calculator):
     def __init__(self, interaction_strength):
         """
         Evaluator for the Ising model.
@@ -138,13 +138,13 @@ class IsingModelEvaluator(Evaluator):
                                 * thisPoint
         return localHamiltonian
 
-    def get_total_energy(self, configuration: IsingGrid):
+    def calculate(self, atoms: IsingGrid):
         """
         Calculate the total energy of a spin grid.
 
         Parameters
         ----------
-        configuration : IsingGrid
+        atoms : IsingGrid
             Spin grid based on which the total energy will be calculated.
 
         Returns
@@ -152,11 +152,12 @@ class IsingModelEvaluator(Evaluator):
         total_energy : float
             Total energy of the given configuration, in eV.
         """
+        self.results["energy"] = 0.0
         energy = 0.0
-        for i in range(0, configuration.lattice_size):
-            for j in range(0, configuration.lattice_size):
-                energy += self.__get_local_hamiltonian(configuration, i, j)
-        return -0.5*energy*self.interaction_strength
+        for i in range(0, atoms.lattice_size):
+            for j in range(0, atoms.lattice_size):
+                energy += self.__get_local_hamiltonian(atoms, i, j)
+        self.results["energy"] = -0.5*energy*self.interaction_strength
 
 
 class IsingModelConfigurations(ConfigurationSuggester):
