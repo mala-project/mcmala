@@ -1,3 +1,4 @@
 from .simulation import ConfigurationSuggester, IsingGrid, \
-                       IsingModelConfigurations, IsingModelEvaluator
+                       IsingModelConfigurations, IsingModelEvaluator, \
+                       AtomDisplacer
 from .montecarlo import MarkovChain, Averager
