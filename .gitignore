@@ -132,3 +132,8 @@ dmypy.json
 
 # JSON files used to save results of Markov chains
 *.json
+
+lammps_input.tmp
+lammps_log.tmp
+mala.pw.scf.in
+*.pkl
