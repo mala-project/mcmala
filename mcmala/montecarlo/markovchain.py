@@ -13,7 +13,7 @@ class MarkovChain:
     def __init__(self, temperatureK, evaluator: Calculator,
                  configuration_suggester: ConfigurationSuggester,
                  initial_configuration, calculate_observables_after_steps=1,
-                 markov_chain_id="mcmala_default"):
+                 markov_chain_id="mcmala_default", additonal_observables=[]):
         """
         Represent a single Markov chain.
 
@@ -36,6 +36,11 @@ class MarkovChain:
             Controls after how many steps the obervables are calculated.
             Does not apply to the energy, which is calculated at any step
             for obvious reasons.
+
+        addtional_observables : list
+            A list of additional (=not the total energy) observables
+            that will be calculated at each
+            calculate_observables_after_steps-th step.
         """
         self.temperatureK = temperatureK
         self.evaluator = evaluator
@@ -46,7 +51,13 @@ class MarkovChain:
         self.id = str(markov_chain_id)
 
         # Observables.
-        self.observables = {"total_energy": 0}
+        self.observables = {"total_energy": 0.0}
+        for entry in additonal_observables:
+            if entry is "rdf":
+                self.observables[entry] = {"rdf" : [], "dr": 0.0,
+                                           "rMax": 0}
+            else:
+                self.observables[entry] = 0.0
 
     def run(self, steps_to_evolve, print_energies=False,
             save_run=True):
@@ -73,6 +84,7 @@ class MarkovChain:
         energy = self.evaluator.results["energy"]
         self.observables["total_energy"] = energy
         accepted_steps = 1
+        all_observables_counter = 0
         for step in range(0, steps_to_evolve):
             new_configuration = self.configuration_suggester.\
                 suggest_new_configuration(self.configuration)
@@ -92,6 +104,23 @@ class MarkovChain:
                 if print_energies is True:
                     print("Accepted step, energy is now: ", energy)
                 self.configuration = new_configuration
+                all_observables_counter += 1
+                if all_observables_counter == self.calculate_observables_after_steps:
+                    self.evaluator.calculate(self.configuration,
+                                             properties=list(self.
+                                                             observables.
+                                                             keys()))
+                    for entry in self.observables.keys():
+                        if entry is "rdf":
+                            self.observables[entry]["rdf"] = \
+                                ((self.observables[entry]["rdf"]
+                                  * (accepted_steps - 1)) +
+                                 self.evaluator.results[entry][0]) / \
+                                accepted_steps
+                            self.observables[entry]["dr"] = self.evaluator.results[entry][2]
+                            self.observables[entry]["rMax"] = self.evaluator.results[entry][1]
+                    all_observables_counter = 0
+
         end_time = datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
 
         print("Markov chain", self.id, "finished, saving results.")
