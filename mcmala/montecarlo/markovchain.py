@@ -13,7 +13,8 @@ class MarkovChain:
     def __init__(self, temperatureK, evaluator: Calculator,
                  configuration_suggester: ConfigurationSuggester,
                  initial_configuration, calculate_observables_after_steps=1,
-                 markov_chain_id="mcmala_default", additonal_observables=[]):
+                 markov_chain_id="mcmala_default", additonal_observables=[],
+                 ensemble="ising"):
         """
         Represent a single Markov chain.
 
@@ -37,10 +38,15 @@ class MarkovChain:
             Does not apply to the energy, which is calculated at any step
             for obvious reasons.
 
-        addtional_observables : list
+        additonal_observables : list
             A list of additional (=not the total energy) observables
             that will be calculated at each
             calculate_observables_after_steps-th step.
+
+        ensemble : string
+            Determines based on which ensemble the acceptance will be handled.
+            "ising" : Ising model acceptance
+            "debug" : each configuration will be accepted.
         """
         self.temperatureK = temperatureK
         self.evaluator = evaluator
@@ -49,12 +55,13 @@ class MarkovChain:
         self.calculate_observables_after_steps = \
             calculate_observables_after_steps
         self.id = str(markov_chain_id)
+        self.ensemble = ensemble
 
         # Observables.
         self.observables = {"total_energy": 0.0}
         for entry in additonal_observables:
-            if entry is "rdf":
-                self.observables[entry] = {"rdf" : [], "dr": 0.0,
+            if entry == "rdf":
+                self.observables[entry] = {"rdf": None, "dr": 0.0,
                                            "rMax": 0}
             else:
                 self.observables[entry] = 0.0
@@ -106,17 +113,22 @@ class MarkovChain:
                 self.configuration = new_configuration
                 all_observables_counter += 1
                 if all_observables_counter == self.calculate_observables_after_steps:
-                    self.evaluator.calculate(self.configuration,
-                                             properties=list(self.
-                                                             observables.
-                                                             keys()))
+                    self.evaluator.calculate_properties(
+                                            self.configuration,
+                                            properties=list(self.
+                                                            observables.
+                                                            keys()))
                     for entry in self.observables.keys():
-                        if entry is "rdf":
-                            self.observables[entry]["rdf"] = \
-                                ((self.observables[entry]["rdf"]
-                                  * (accepted_steps - 1)) +
-                                 self.evaluator.results[entry][0]) / \
-                                accepted_steps
+                        if entry == "rdf":
+                            if self.observables[entry]["rdf"] is None:
+                                self.observables[entry]["rdf"] = \
+                                    self.evaluator.results[entry][0]
+                            else:
+                                self.observables[entry]["rdf"] = \
+                                    ((self.observables[entry]["rdf"]
+                                      * (accepted_steps - 1)) +
+                                     self.evaluator.results[entry][0]) / \
+                                    accepted_steps
                             self.observables[entry]["dr"] = self.evaluator.results[entry][2]
                             self.observables[entry]["rMax"] = self.evaluator.results[entry][1]
                     all_observables_counter = 0
@@ -145,13 +157,18 @@ class MarkovChain:
         pass
 
     def __check_acceptance(self, deltaE):
-        if deltaE > 0.0:
-            randomNumber = random()
-            probability = np.exp(
-                -1.0 * deltaE / (kB * self.temperatureK))
-            if probability < randomNumber:
-                return False
-        return True
+        if self.ensemble == "ising":
+            if deltaE > 0.0:
+                randomNumber = random()
+                probability = np.exp(
+                    -1.0 * deltaE / (kB * self.temperatureK))
+                if probability < randomNumber:
+                    return False
+            return True
+        elif self.ensemble == "debug":
+            return True
+        else:
+            raise Exception("Unknown ensemble selected.")
 
     # Properties (Observables)
     @property
