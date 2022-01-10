@@ -14,7 +14,7 @@ class MarkovChain:
                  configuration_suggester: ConfigurationSuggester,
                  initial_configuration, calculate_observables_after_steps=1,
                  markov_chain_id="mcmala_default", additonal_observables=[],
-                 ensemble="ising"):
+                 ensemble="nvt"):
         """
         Represent a single Markov chain.
 
@@ -45,7 +45,7 @@ class MarkovChain:
 
         ensemble : string
             Determines based on which ensemble the acceptance will be handled.
-            "ising" : Ising model acceptance
+            "nvt" : NVT (canonical) ensemble
             "debug" : each configuration will be accepted.
         """
         self.temperatureK = temperatureK
@@ -157,7 +157,7 @@ class MarkovChain:
         pass
 
     def __check_acceptance(self, deltaE):
-        if self.ensemble == "ising":
+        if self.ensemble == "nvt":
             if deltaE > 0.0:
                 randomNumber = random()
                 probability = np.exp(
