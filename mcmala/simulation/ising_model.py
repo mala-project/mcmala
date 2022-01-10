@@ -159,6 +159,16 @@ class IsingModelEvaluator(Calculator):
                 energy += self.__get_local_hamiltonian(atoms, i, j)
         self.results["energy"] = -0.5*energy*self.interaction_strength
 
+    def calculate_properties(self, atoms: IsingGrid, properties):
+        """
+        After a calculation, calculate additional properties.
+
+        This is separate from the calculate function because of
+        MALA-MC simulations. For these energy and additional property
+        calculation need to be separate.
+        """
+        pass
+
 
 class IsingModelConfigurations(ConfigurationSuggester):
     def __init__(self):

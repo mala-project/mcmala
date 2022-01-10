@@ -146,6 +146,7 @@ class MarkovChain:
                 "evaluator": type(self.evaluator).__name__,
                 "start_time": start_time,
                 "end_time": end_time,
+                "ensemble": self.ensemble,
             }
             self.__save_run(metadata)
 
