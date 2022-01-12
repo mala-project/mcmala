@@ -61,8 +61,7 @@ class MarkovChain:
         self.observables = {"total_energy": 0.0}
         for entry in additonal_observables:
             if entry == "rdf":
-                self.observables[entry] = {"rdf": None, "dr": 0.0,
-                                           "rMax": 0}
+                self.observables[entry] = {"rdf": None, "distances": None}
             else:
                 self.observables[entry] = 0.0
 
@@ -129,8 +128,7 @@ class MarkovChain:
                                       * (accepted_steps - 1)) +
                                      self.evaluator.results[entry][0]) / \
                                     accepted_steps
-                            self.observables[entry]["dr"] = self.evaluator.results[entry][2]
-                            self.observables[entry]["rMax"] = self.evaluator.results[entry][1]
+                            self.observables[entry]["distances"] = self.evaluator.results[entry][1]
                     all_observables_counter = 0
 
         end_time = datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")

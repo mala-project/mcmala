@@ -35,12 +35,9 @@ class Averager:
                 self.observables["rdf"]["rdf"].append(markov_chain_data
                                                         ["averaged_observables"]
                                                         ["rdf"]["rdf"])
-                self.observables["rdf"]["dr"] = markov_chain_data\
+                self.observables["rdf"]["distances"] = markov_chain_data\
                                                 ["averaged_observables"]\
-                                                ["rdf"]["dr"]
-                self.observables["rdf"]["rMax"] = markov_chain_data\
-                                                  ["averaged_observables"]\
-                                                  ["rdf"]["rMax"]
+                                                ["rdf"]["distances"]
 
             else:
                 self.observables[entry].append(markov_chain_data
@@ -58,4 +55,4 @@ class Averager:
     def rdf(self):
         """Total energy of the system (in eV)."""
         return np.mean(self.observables["rdf"]["rdf"]),
-        self.observables["rdf"]["rMax"], self.observables["rdf"]["dr"]
+        self.observables["rdf"]["distances"]
