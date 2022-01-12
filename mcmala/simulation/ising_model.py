@@ -1,6 +1,4 @@
-"""
-Evaluator, suggester, configurations for the Ising model.
-"""
+"""Evaluator, suggester, configurations for the Ising model."""
 from random import randrange
 from copy import deepcopy
 
@@ -12,23 +10,24 @@ from .configuration_suggester import ConfigurationSuggester
 
 
 class IsingGrid:
+    """
+    Represents a grid of spins.
+
+    Such a grid is at the center of the Ising model. Spins can be either
+    +1 or -1 (spin up/spin down). Only a quadratic 2D lattice is supported.
+
+    Parameters
+    ----------
+    lattice_size : int
+        Size of the lattice (in either direction, a quadratic lattice is
+                         assumed.)
+    initType : string
+        Type of initialization to be performed. Default "random", assgning
+        spins at random. "positive" or "negative" initializes the lattice
+        entirely with positive or negative spins, respectively.
+    """
+
     def __init__(self, lattice_size, initType="random"):
-        """
-        Represents a grid of spins.
-
-        Such a grid is at the center of the Ising model. Spins can be either
-        +1 or -1 (spin up/spin down). Only a quadratic 2D lattice is supported.
-
-        Parameters
-        ----------
-        lattice_size : int
-            Size of the lattice (in either direction, a quadratic lattice is
-                             assumed.)
-        initType : string
-            Type of initialization to be performed. Default "random", assgning
-            spins at random. "positive" or "negative" initializes the lattice
-            entirely with positive or negative spins, respectively.
-        """
         self.lattice_size = lattice_size
         self.lattice = np.zeros((self.lattice_size, self.lattice_size),
                                 dtype=np.int8)
@@ -87,19 +86,20 @@ class IsingGrid:
 
 
 class IsingModelEvaluator(Calculator):
+    """
+    Evaluator for the Ising model.
+
+    An object of this class can calculate the total energy of an Ising
+    model spin grid.
+
+    Parameters
+    ----------
+    interaction_strength : float
+        Interaction strength of Ising model, in eV.
+
+    """
+
     def __init__(self, interaction_strength):
-        """
-        Evaluator for the Ising model.
-
-        An object of this class can calculate the total energy of an Ising
-        model spin grid.
-
-        Parameters
-        ----------
-        interaction_strength : float
-            Interaction strength of Ising model, in eV.
-
-        """
         super(IsingModelEvaluator, self).__init__()
         self.interaction_strength = interaction_strength
 
@@ -171,12 +171,13 @@ class IsingModelEvaluator(Calculator):
 
 
 class IsingModelConfigurations(ConfigurationSuggester):
-    def __init__(self):
-        """
-        Configuration suggester for the Ising model.
+    """
+    Configuration suggester for the Ising model.
 
-        Randomly flips a spin.
-        """
+    Randomly flips a spin.
+    """
+
+    def __init__(self):
         super(IsingModelConfigurations, self).__init__()
 
     def suggest_new_configuration(self, old_configuration: IsingGrid):

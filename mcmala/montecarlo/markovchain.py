@@ -1,3 +1,4 @@
+"""Markov chain for Monte Carlo simulation."""
 from random import random
 import json
 
@@ -10,44 +11,45 @@ from datetime import datetime
 
 
 class MarkovChain:
+    """
+    Represent a single Markov chain.
+
+    Parameters
+    ----------
+    temperatureK : float
+        Temperature in Kelvin.
+
+    evaluator : ase.calculators.calculator.Calculator
+        Evaluator object used to calculate the total energy.
+
+    configuration_suggester : mcmala.simulation.configuration_suggester.ConfigurationSuggester
+        Suggests changes to configuration of MarkovChain. Depends on the
+        type of model.
+
+    initial_configuration : Any
+        Initial configuration of atoms, spin grid, etc.
+
+    calculate_observables_after_steps : int
+        Controls after how many steps the obervables are calculated.
+        Does not apply to the energy, which is calculated at any step
+        for obvious reasons.
+
+    additonal_observables : list
+        A list of additional (=not the total energy) observables
+        that will be calculated at each
+        calculate_observables_after_steps-th step.
+
+    ensemble : string
+        Determines based on which ensemble the acceptance will be handled.
+        "nvt" : NVT (canonical) ensemble
+        "debug" : each configuration will be accepted.
+    """
+
     def __init__(self, temperatureK, evaluator: Calculator,
                  configuration_suggester: ConfigurationSuggester,
                  initial_configuration, calculate_observables_after_steps=1,
                  markov_chain_id="mcmala_default", additonal_observables=[],
                  ensemble="nvt"):
-        """
-        Represent a single Markov chain.
-
-        Parameters
-        ----------
-        temperatureK : float
-            Temperature in Kelvin.
-
-        evaluator : ase.calculators.calculator.Calculator
-            Evaluator object used to calculate the total energy.
-
-        configuration_suggester : mcmala.simulation.configuration_suggester.ConfigurationSuggester
-            Suggests changes to configuration of MarkovChain. Depends on the
-            type of model.
-
-        initial_configuration : Any
-            Initial configuration of atoms, spin grid, etc.
-
-        calculate_observables_after_steps : int
-            Controls after how many steps the obervables are calculated.
-            Does not apply to the energy, which is calculated at any step
-            for obvious reasons.
-
-        additonal_observables : list
-            A list of additional (=not the total energy) observables
-            that will be calculated at each
-            calculate_observables_after_steps-th step.
-
-        ensemble : string
-            Determines based on which ensemble the acceptance will be handled.
-            "nvt" : NVT (canonical) ensemble
-            "debug" : each configuration will be accepted.
-        """
         self.temperatureK = temperatureK
         self.evaluator = evaluator
         self.configuration_suggester = configuration_suggester

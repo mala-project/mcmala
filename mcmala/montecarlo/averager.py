@@ -1,11 +1,13 @@
+"""Averager to extract information from multiple Markov chains."""
 import json
 
 import numpy as np
 
 
 class Averager:
+    """Averager class used to average over multiple Markov chains."""
+
     def __init__(self):
-        """Averager class used to average over multiple Markov chains."""
         # Observables.
         self.observables = {"total_energy": [],
                             "rdf": {"rdf": [], "dr": 0.0,
@@ -14,7 +16,7 @@ class Averager:
 
     def add_markov_chain(self, markov_chain_id):
         """
-        Adds a Markov chain to the analysis.
+        Add a Markov chain to the analysis.
 
         Observables of this particular Markov chain will be used for averaging.
 

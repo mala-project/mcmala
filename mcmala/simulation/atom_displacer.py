@@ -1,6 +1,4 @@
-"""
-Displaces a random atom in an ASE atoms object by a random vector.
-"""
+"""Configuration suggester for atomistic simulations."""
 from copy import deepcopy
 from random import randrange, random
 
@@ -10,6 +8,12 @@ from .configuration_suggester import ConfigurationSuggester
 
 
 class AtomDisplacer(ConfigurationSuggester):
+    """
+    Configuration suggester for atomistic simulations.
+
+    Displaces a random atom in an ASE atoms object by a random vector.
+    """
+
     def __init__(self, maximum_displacement):
         super(AtomDisplacer, self).__init__()
         self.maximum_displacement = maximum_displacement

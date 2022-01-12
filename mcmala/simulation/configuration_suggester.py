@@ -1,11 +1,11 @@
-from abc import ABC, abstractmethod
+"""Abstract base class for configuration suggesters."""
 
-"""
-Abstract base class for configuration suggesters.
-"""
+from abc import ABC, abstractmethod
 
 
 class ConfigurationSuggester(ABC):
+    """Abstract base class for configuration suggesters."""
+
     def __init__(self):
         pass
 
