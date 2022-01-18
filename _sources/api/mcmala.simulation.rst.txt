@@ -1,0 +1,37 @@
+mcmala.simulation package
+=========================
+
+Submodules
+----------
+
+mcmala.simulation.atom\_displacer module
+----------------------------------------
+
+.. automodule:: mcmala.simulation.atom_displacer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+mcmala.simulation.configuration\_suggester module
+-------------------------------------------------
+
+.. automodule:: mcmala.simulation.configuration_suggester
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+mcmala.simulation.ising\_model module
+-------------------------------------
+
+.. automodule:: mcmala.simulation.ising_model
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: mcmala.simulation
+   :members:
+   :undoc-members:
+   :show-inheritance:

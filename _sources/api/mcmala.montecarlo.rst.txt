@@ -1,0 +1,29 @@
+mcmala.montecarlo package
+=========================
+
+Submodules
+----------
+
+mcmala.montecarlo.averager module
+---------------------------------
+
+.. automodule:: mcmala.montecarlo.averager
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+mcmala.montecarlo.markovchain module
+------------------------------------
+
+.. automodule:: mcmala.montecarlo.markovchain
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: mcmala.montecarlo
+   :members:
+   :undoc-members:
+   :show-inheritance:

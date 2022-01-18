@@ -1,0 +1,458 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>mcmala.simulation package &mdash; Materials Learning Algorithms Data Acquisition (MALADA)  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+    <link rel="shortcut icon" href="../_static/mala_favicon.png"/>
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="mcmala.montecarlo package" href="mcmala.montecarlo.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> Materials Learning Algorithms Data Acquisition (MALADA)
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Installation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../install/install.html">Installation of MC-MALA</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Usage</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../usage/general.html">General Usage</a></li>
+</ul>
+<p class="caption"><span class="caption-text">API Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">mcmala</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="mcmala.html">mcmala package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="mcmala.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="mcmala.montecarlo.html">mcmala.montecarlo package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">mcmala.simulation package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="mcmala.html#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="mcmala.html#module-mcmala.version">mcmala.version module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="mcmala.html#module-mcmala">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Materials Learning Algorithms Data Acquisition (MALADA)</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="modules.html">mcmala</a> &raquo;</li>
+        
+          <li><a href="mcmala.html">mcmala package</a> &raquo;</li>
+        
+      <li>mcmala.simulation package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            
+              <a href="https://github.com//mala-project/malada/blob/develop/docs/source/api/mcmala.simulation.rst" class="fa fa-github"> Edit on GitHub</a>
+            
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="mcmala-simulation-package">
+<h1>mcmala.simulation package<a class="headerlink" href="#mcmala-simulation-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-mcmala.simulation.atom_displacer">
+<span id="mcmala-simulation-atom-displacer-module"></span><h2>mcmala.simulation.atom_displacer module<a class="headerlink" href="#module-mcmala.simulation.atom_displacer" title="Permalink to this headline">¶</a></h2>
+<p>Configuration suggester for atomistic simulations.</p>
+<dl class="py class">
+<dt id="mcmala.simulation.atom_displacer.AtomDisplacer">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">mcmala.simulation.atom_displacer.</span></code><code class="sig-name descname"><span class="pre">AtomDisplacer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">maximum_displacement</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enforce_pbc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mcmala.simulation.atom_displacer.AtomDisplacer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mcmala.simulation.configuration_suggester.ConfigurationSuggester" title="mcmala.simulation.configuration_suggester.ConfigurationSuggester"><code class="xref py py-class docutils literal notranslate"><span class="pre">mcmala.simulation.configuration_suggester.ConfigurationSuggester</span></code></a></p>
+<p>Configuration suggester for atomistic simulations.</p>
+<p>Displaces a random atom in an ASE atoms object by a random vector.</p>
+<dl class="py method">
+<dt id="mcmala.simulation.atom_displacer.AtomDisplacer.get_info">
+<code class="sig-name descname"><span class="pre">get_info</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mcmala.simulation.atom_displacer.AtomDisplacer.get_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Access a dictionary with identifying information.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><strong>info</strong></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mcmala.simulation.atom_displacer.AtomDisplacer.suggest_new_configuration">
+<code class="sig-name descname"><span class="pre">suggest_new_configuration</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">old_configuration</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">ase.Atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mcmala.simulation.atom_displacer.AtomDisplacer.suggest_new_configuration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Suggest a new configuration based on the old.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>old_configuration</strong> (<em>ase.Atoms</em>) – Old configuration based on which a new one will be suggested.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>new_configuration</strong> – New configuration as suggested by algorithm.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>ase.Atoms</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="mcmala.simulation.atom_displacer.random">
+<code class="sig-prename descclassname"><span class="pre">mcmala.simulation.atom_displacer.</span></code><code class="sig-name descname"><span class="pre">random</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">x</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">interval</span> <span class="pre">[0,</span> <span class="pre">1).</span><a class="headerlink" href="#mcmala.simulation.atom_displacer.random" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-mcmala.simulation.configuration_suggester">
+<span id="mcmala-simulation-configuration-suggester-module"></span><h2>mcmala.simulation.configuration_suggester module<a class="headerlink" href="#module-mcmala.simulation.configuration_suggester" title="Permalink to this headline">¶</a></h2>
+<p>Abstract base class for configuration suggesters.</p>
+<dl class="py class">
+<dt id="mcmala.simulation.configuration_suggester.ConfigurationSuggester">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">mcmala.simulation.configuration_suggester.</span></code><code class="sig-name descname"><span class="pre">ConfigurationSuggester</span></code><a class="headerlink" href="#mcmala.simulation.configuration_suggester.ConfigurationSuggester" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABC</span></code></p>
+<p>Abstract base class for configuration suggesters.</p>
+<dl class="py method">
+<dt id="mcmala.simulation.configuration_suggester.ConfigurationSuggester.get_info">
+<em class="property"><span class="pre">abstract</span> </em><code class="sig-name descname"><span class="pre">get_info</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mcmala.simulation.configuration_suggester.ConfigurationSuggester.get_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Access a dictionary with identifying information.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><strong>info</strong></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mcmala.simulation.configuration_suggester.ConfigurationSuggester.suggest_new_configuration">
+<em class="property"><span class="pre">abstract</span> </em><code class="sig-name descname"><span class="pre">suggest_new_configuration</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">old_configuration</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mcmala.simulation.configuration_suggester.ConfigurationSuggester.suggest_new_configuration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Suggest a new configuration based on the old.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>old_configuration</strong> (<em>Any</em>) – Old configuration based on which a new one will be suggested.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>new_configuration</strong> – New configuration as suggested by algorithm.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Any</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-mcmala.simulation.ising_model">
+<span id="mcmala-simulation-ising-model-module"></span><h2>mcmala.simulation.ising_model module<a class="headerlink" href="#module-mcmala.simulation.ising_model" title="Permalink to this headline">¶</a></h2>
+<p>Evaluator, suggester, configurations for the Ising model.</p>
+<dl class="py class">
+<dt id="mcmala.simulation.ising_model.IsingGrid">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">mcmala.simulation.ising_model.</span></code><code class="sig-name descname"><span class="pre">IsingGrid</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lattice_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initType</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'random'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mcmala.simulation.ising_model.IsingGrid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Represents a grid of spins.</p>
+<p>Such a grid is at the center of the Ising model. Spins can be either
++1 or -1 (spin up/spin down). Only a quadratic 2D lattice is supported.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lattice_size</strong> (<em>int</em>) – <dl class="simple">
+<dt>Size of the lattice (in either direction, a quadratic lattice is</dt><dd><p>assumed.)</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>initType</strong> (<em>string</em>) – Type of initialization to be performed. Default “random”, assgning
+spins at random. “positive” or “negative” initializes the lattice
+entirely with positive or negative spins, respectively.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="mcmala.simulation.ising_model.IsingGrid.visualize">
+<code class="sig-name descname"><span class="pre">visualize</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mcmala.simulation.ising_model.IsingGrid.visualize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Visualize an Ising model spin grid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em>) – An axis to be used for plotting. If “None”, one will be created.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>ax</strong> – Axis to be used for plotting. If one was provided,
+the plot will have been added to this one.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>matplotlib.axes.Axes</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="mcmala.simulation.ising_model.IsingModelConfigurations">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">mcmala.simulation.ising_model.</span></code><code class="sig-name descname"><span class="pre">IsingModelConfigurations</span></code><a class="headerlink" href="#mcmala.simulation.ising_model.IsingModelConfigurations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mcmala.simulation.configuration_suggester.ConfigurationSuggester" title="mcmala.simulation.configuration_suggester.ConfigurationSuggester"><code class="xref py py-class docutils literal notranslate"><span class="pre">mcmala.simulation.configuration_suggester.ConfigurationSuggester</span></code></a></p>
+<p>Configuration suggester for the Ising model.</p>
+<p>Randomly flips a spin.</p>
+<dl class="py method">
+<dt id="mcmala.simulation.ising_model.IsingModelConfigurations.get_info">
+<code class="sig-name descname"><span class="pre">get_info</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mcmala.simulation.ising_model.IsingModelConfigurations.get_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Access a dictionary with identifying information.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><strong>info</strong></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mcmala.simulation.ising_model.IsingModelConfigurations.suggest_new_configuration">
+<code class="sig-name descname"><span class="pre">suggest_new_configuration</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">old_configuration</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#mcmala.simulation.ising_model.IsingGrid" title="mcmala.simulation.ising_model.IsingGrid"><span class="pre">mcmala.simulation.ising_model.IsingGrid</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mcmala.simulation.ising_model.IsingModelConfigurations.suggest_new_configuration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Suggest a new configuration for an Ising model spin grid.</p>
+<p>This is done by randomly flipping a spin.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>old_configuration</strong> (<a class="reference internal" href="#mcmala.simulation.ising_model.IsingGrid" title="mcmala.simulation.ising_model.IsingGrid"><em>IsingGrid</em></a>) – Spin grid for which to suggest a new spin grid.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>new_configuration</strong> – New spin grid.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#mcmala.simulation.ising_model.IsingGrid" title="mcmala.simulation.ising_model.IsingGrid">IsingGrid</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="mcmala.simulation.ising_model.IsingModelEvaluator">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">mcmala.simulation.ising_model.</span></code><code class="sig-name descname"><span class="pre">IsingModelEvaluator</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mcmala.simulation.ising_model.IsingModelEvaluator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.calculators.calculator.</span></code></p>
+<p>Evaluator for the Ising model.</p>
+<p>An object of this class can calculate the total energy of an Ising
+model spin grid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>interaction_strength</strong> (<em>float</em>) – Interaction strength of Ising model, in eV.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="mcmala.simulation.ising_model.IsingModelEvaluator.calculate">
+<code class="sig-name descname"><span class="pre">calculate</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#mcmala.simulation.ising_model.IsingGrid" title="mcmala.simulation.ising_model.IsingGrid"><span class="pre">mcmala.simulation.ising_model.IsingGrid</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mcmala.simulation.ising_model.IsingModelEvaluator.calculate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the total energy of a spin grid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>atoms</strong> (<a class="reference internal" href="#mcmala.simulation.ising_model.IsingGrid" title="mcmala.simulation.ising_model.IsingGrid"><em>IsingGrid</em></a>) – Spin grid based on which the total energy will be calculated.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>total_energy</strong> – Total energy of the given configuration, in eV.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="mcmala.simulation.ising_model.IsingModelEvaluator.calculate_properties">
+<code class="sig-name descname"><span class="pre">calculate_properties</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#mcmala.simulation.ising_model.IsingGrid" title="mcmala.simulation.ising_model.IsingGrid"><span class="pre">mcmala.simulation.ising_model.IsingGrid</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">properties</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mcmala.simulation.ising_model.IsingModelEvaluator.calculate_properties" title="Permalink to this definition">¶</a></dt>
+<dd><p>After a calculation, calculate additional properties.</p>
+<p>This is separate from the calculate function because of
+MALA-MC simulations. For these energy and additional property
+calculation need to be separate.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-mcmala.simulation">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-mcmala.simulation" title="Permalink to this headline">¶</a></h2>
+<p>Everything evaluating/simulation related MCMALA contains.</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="mcmala.montecarlo.html" class="btn btn-neutral float-left" title="mcmala.montecarlo package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright noneyet.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

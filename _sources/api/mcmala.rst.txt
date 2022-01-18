@@ -1,0 +1,30 @@
+mcmala package
+==============
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   mcmala.montecarlo
+   mcmala.simulation
+
+Submodules
+----------
+
+mcmala.version module
+---------------------
+
+.. automodule:: mcmala.version
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: mcmala
+   :members:
+   :undoc-members:
+   :show-inheritance:

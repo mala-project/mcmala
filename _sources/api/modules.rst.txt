@@ -1,0 +1,7 @@
+mcmala
+======
+
+.. toctree::
+   :maxdepth: 4
+
+   mcmala
