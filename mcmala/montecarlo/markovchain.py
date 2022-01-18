@@ -66,6 +66,13 @@ class MarkovChain:
                 self.observables[entry] = {"rdf": None, "distances": None}
             else:
                 self.observables[entry] = 0.0
+            if entry == "ion_ion_energy":
+                self.observables[entry] = 0.0
+            if entry == "static_structure_factor":
+                self.observables[entry] = {"static_structure_factor": None, "kpoints": None}
+            if entry == "tpcf":
+                self.observables[entry] = {"tpcf": None, "radii": None}
+
 
     def run(self, steps_to_evolve, print_energies=False,
             save_run=True):
@@ -131,6 +138,30 @@ class MarkovChain:
                                      self.evaluator.results[entry][0]) / \
                                     accepted_steps
                             self.observables[entry]["distances"] = self.evaluator.results[entry][1]
+                        if entry == "static_structure_factor":
+                            if self.observables[entry]["static_structure_factor"] is None:
+                                self.observables[entry]["static_structure_factor"] = \
+                                    self.evaluator.results[entry][0]
+                            else:
+                                self.observables[entry]["static_structure_factor"] = \
+                                    ((self.observables[entry]["static_structure_factor"]
+                                      * (accepted_steps - 1)) +
+                                     self.evaluator.results[entry][0]) / \
+                                    accepted_steps
+                            self.observables[entry]["kpoints"] = self.evaluator.results[entry][1]
+                        if entry == "tpcf":
+                            if self.observables[entry]["tpcf"] is None:
+                                self.observables[entry]["tpcf"] = \
+                                    self.evaluator.results[entry][0]
+                            else:
+                                self.observables[entry]["tpcf"] = \
+                                    ((self.observables[entry]["tpcf"]
+                                      * (accepted_steps - 1)) +
+                                     self.evaluator.results[entry][0]) / \
+                                    accepted_steps
+                            self.observables[entry]["radii"] = self.evaluator.results[entry][1]
+                        if entry == "ion_ion_energy":
+                            self.observables[entry] = self.evaluator.results[entry]
                     all_observables_counter = 0
 
         end_time = datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
