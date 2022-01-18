@@ -205,3 +205,15 @@ class IsingModelConfigurations(ConfigurationSuggester):
         new_configuration.lattice[x_to_flip, y_to_flip] *= -1
         return new_configuration
 
+    def get_info(self):
+        """
+        Access a dictionary with identifying information.
+
+        Returns
+        -------
+        info : dict
+
+        """
+        info = {}
+        info["name"] = type(self).__name__
+        return info

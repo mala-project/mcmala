@@ -26,3 +26,14 @@ class ConfigurationSuggester(ABC):
 
         """
         pass
+
+    @abstractmethod
+    def get_info(self):
+        """
+        Access a dictionary with identifying information.
+
+        Returns
+        -------
+        info : dict
+
+        """

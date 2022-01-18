@@ -172,8 +172,8 @@ class MarkovChain:
             metadata = {
                 "id": self.id,
                 "temperature": self.temperatureK,
-                "configuration type": type(self.configuration).__name__,
-                "configuration suggester": type(self.configuration_suggester).__name__,
+                "configuration_suggester": self.configuration_suggester.get_info(),
+                "configuration_type": type(self.configuration).__name__,
                 "evaluator": type(self.evaluator).__name__,
                 "start_time": start_time,
                 "end_time": end_time,
@@ -186,7 +186,13 @@ class MarkovChain:
                     self.observables}
         with open(self.id+".json", "w", encoding="utf-8") as f:
             json.dump(save_dict, f, ensure_ascii=False, indent=4)
-        pass
+        try:
+            from mala import ASECalculator
+            if isinstance(self.evaluator, ASECalculator):
+                print("Saving MALA parameters.")
+                self.evaluator.params.save(self.id+"_mala_params.pkl")
+        except:
+            pass
 
     def __check_acceptance(self, deltaE):
         if self.ensemble == "nvt":

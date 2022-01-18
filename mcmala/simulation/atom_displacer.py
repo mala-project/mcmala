@@ -84,3 +84,18 @@ class AtomDisplacer(ConfigurationSuggester):
             new_configuration = AtomDisplacer._enforce_pbc(new_configuration)
         return new_configuration
 
+    def get_info(self):
+        """
+        Access a dictionary with identifying information.
+
+        Returns
+        -------
+        info : dict
+
+        """
+        info = {}
+        info["name"] = type(self).__name__
+        info["maximum_displacement"] = self.maximum_displacement
+        info["enforce_pbc"] = self.enforce_pbc
+        return info
+
