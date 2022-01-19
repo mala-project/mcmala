@@ -2,7 +2,9 @@
 from random import random
 import json
 
+from ase import Atoms
 from ase.units import kB
+from ase.io.trajectory import TrajectoryWriter
 from ase.calculators.calculator import Calculator
 import numpy as np
 
@@ -49,7 +51,7 @@ class MarkovChain:
                  configuration_suggester: ConfigurationSuggester,
                  initial_configuration, calculate_observables_after_steps=1,
                  markov_chain_id="mcmala_default", additonal_observables=[],
-                 ensemble="nvt"):
+                 ensemble="nvt", equilibration_steps=0):
         self.temperatureK = temperatureK
         self.evaluator = evaluator
         self.configuration_suggester = configuration_suggester
@@ -58,6 +60,7 @@ class MarkovChain:
             calculate_observables_after_steps
         self.id = str(markov_chain_id)
         self.ensemble = ensemble
+        self.equilibration_steps = equilibration_steps
 
         # Observables.
         self.observables = {"total_energy": 0.0}
@@ -73,9 +76,8 @@ class MarkovChain:
             if entry == "tpcf":
                 self.observables[entry] = {"tpcf": None, "radii": None}
 
-
     def run(self, steps_to_evolve, print_energies=False,
-            save_run=True):
+            save_run=True, log_energies=False, log_trajectory=False):
         """
         Run this Markov chain for a specified number of steps.
 
@@ -92,14 +94,27 @@ class MarkovChain:
             for examples and such).
 
         """
+        if steps_to_evolve < self.equilibration_steps:
+            raise Exception("Will not attempt to run for less steps then are "
+                            "necessary for equilibration.")
         print("Starting Markov chain "+self.id+".")
         start_time = datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
 
         self.evaluator.calculate(self.configuration)
         energy = self.evaluator.results["energy"]
         self.observables["total_energy"] = energy
-        accepted_steps = 1
+        accepted_steps = 0
         all_observables_counter = 0
+
+        # Prepare logging, if necessary.
+        if isinstance(self.configuration, Atoms) is False:
+           log_trajectory = False
+        if log_trajectory:
+            trajectory_logger = TrajectoryWriter(self.id+".traj")
+        if log_energies:
+            energy_file = open(self.id+"_energies.log", "w")
+            energy_file.write("step\ttotal energy\n")
+
         for step in range(0, steps_to_evolve):
             new_configuration = self.configuration_suggester.\
                 suggest_new_configuration(self.configuration)
@@ -110,17 +125,22 @@ class MarkovChain:
 
             if self.__check_acceptance(deltaE):
                 energy = new_energy
-                accepted_steps += 1
-                self.observables["total_energy"] =\
-                    ((self.observables["total_energy"]
-                                               * (accepted_steps - 1)) +
-                                                energy) / accepted_steps
-
-                if print_energies is True:
-                    print("Accepted step, energy is now: ", energy)
                 self.configuration = new_configuration
+                if step >= self.equilibration_steps:
+                    accepted_steps += 1
+                    self.observables["total_energy"] =\
+                        ((self.observables["total_energy"]
+                                                   * (accepted_steps - 1)) +
+                                                    energy) / accepted_steps
+
+                    if print_energies is True:
+                        print("Accepted step, energy is now: ", energy)
+
+                # Calculate the observables.
                 all_observables_counter += 1
-                if all_observables_counter == self.calculate_observables_after_steps:
+                if all_observables_counter == \
+                        self.calculate_observables_after_steps\
+                        and step >= self.equilibration_steps:
                     self.evaluator.calculate_properties(
                                             self.configuration,
                                             properties=list(self.
@@ -164,7 +184,16 @@ class MarkovChain:
                             self.observables[entry] = self.evaluator.results[entry]
                     all_observables_counter = 0
 
+                # Finally, the logging.
+                if log_trajectory:
+                    trajectory_logger.write(new_configuration)
+                if log_energies:
+                    energy_file.write("{0} \t {1:10.4f}\n".format(step, energy))
+
         end_time = datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
+
+        if log_energies:
+            energy_file.close()
 
         print("Markov chain", self.id, "finished, saving results.")
         if save_run:
@@ -178,6 +207,9 @@ class MarkovChain:
                 "start_time": start_time,
                 "end_time": end_time,
                 "ensemble": self.ensemble,
+                "steps_evolved": steps_to_evolve,
+                "accepted_steps": accepted_steps,
+                "equilibration_steps": self.equilibration_steps,
             }
             self.__save_run(metadata)
 

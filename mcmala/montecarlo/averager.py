@@ -7,12 +7,15 @@ import numpy as np
 class Averager:
     """Averager class used to average over multiple Markov chains."""
 
-    def __init__(self):
+    def __init__(self, read_logs=False):
         # Observables.
         self.observables = {"total_energy": [],
                             "rdf": {"rdf": [], "dr": 0.0,
-                                           "rMax": 0}
+                                           "rMax": 0},
+                            "ion_ion_energy": []
                             }
+        self.read_logs = read_logs
+        self.energies = {}
 
     def add_markov_chain(self, markov_chain_id):
         """
@@ -35,8 +38,8 @@ class Averager:
         for entry in markov_chain_data["averaged_observables"].keys():
             if entry == "rdf":
                 self.observables["rdf"]["rdf"].append(markov_chain_data
-                                                        ["averaged_observables"]
-                                                        ["rdf"]["rdf"])
+                                                      ["averaged_observables"]
+                                                      ["rdf"]["rdf"])
                 self.observables["rdf"]["distances"] = markov_chain_data\
                                                 ["averaged_observables"]\
                                                 ["rdf"]["distances"]
@@ -45,7 +48,23 @@ class Averager:
                 self.observables[entry].append(markov_chain_data
                                                   ["averaged_observables"]
                                                         [entry])
+        # Try to read the energy file written by the Markov chain.
+        if self.read_logs:
+            try:
+                energy_file = open(markov_chain_id + "_energies.log", "r")
+                lines = energy_file.readlines()
+                energy_list = []
+                for line in lines:
+                    if "total energy" not in line:
+                        energy_list.append(float(line.split()[1]))
+                self.energies[markov_chain_id] = energy_list
+            except FileNotFoundError:
+                print("Could not find log file for Markov chain",
+                      markov_chain_id, "skipping reading of energy logs.")
 
+    def get_energies_of_markov_chain(self, markov_chain_id):
+        """Get the energies list for a certain markov chain."""
+        return self.energies[markov_chain_id]
 
     # Properties (Observables)
     @property
@@ -56,5 +75,10 @@ class Averager:
     @property
     def rdf(self):
         """Total energy of the system (in eV)."""
-        return np.mean(self.observables["rdf"]["rdf"]),
-        self.observables["rdf"]["distances"]
+        return np.mean(self.observables["rdf"]["rdf"]), \
+               self.observables["rdf"]["distances"]
+
+    @property
+    def ion_ion_energy(self):
+        """Ion ion energy in eV"""
+        return np.mean(self.observables["ion_ion_energy"])
