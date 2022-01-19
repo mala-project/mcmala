@@ -1,6 +1,8 @@
 """Markov chain for Monte Carlo simulation."""
 from random import random
 import json
+import os
+import pickle
 
 from ase import Atoms
 from ase.units import kB
@@ -9,10 +11,11 @@ from ase.calculators.calculator import Calculator
 import numpy as np
 
 from mcmala import ConfigurationSuggester
+from .markovchainresults import MarkovChainResults
 from datetime import datetime
 
 
-class MarkovChain:
+class MarkovChain(MarkovChainResults):
     """
     Represent a single Markov chain.
 
@@ -58,23 +61,15 @@ class MarkovChain:
         self.configuration = initial_configuration
         self.calculate_observables_after_steps = \
             calculate_observables_after_steps
-        self.id = str(markov_chain_id)
         self.ensemble = ensemble
         self.equilibration_steps = equilibration_steps
 
-        # Observables.
-        self.observables = {"total_energy": 0.0}
-        for entry in additonal_observables:
-            if entry == "rdf":
-                self.observables[entry] = {"rdf": None, "distances": None}
-            else:
-                self.observables[entry] = 0.0
-            if entry == "ion_ion_energy":
-                self.observables[entry] = 0.0
-            if entry == "static_structure_factor":
-                self.observables[entry] = {"static_structure_factor": None, "kpoints": None}
-            if entry == "tpcf":
-                self.observables[entry] = {"tpcf": None, "radii": None}
+        super(MarkovChain, self).__init__(markov_chain_id=markov_chain_id,
+                                          additonal_observables=additonal_observables)
+
+        # Create folder for this Markov chain.
+        if not os.path.exists(self.id):
+            os.makedirs(self.id)
 
     def run(self, steps_to_evolve, print_energies=False,
             save_run=True, log_energies=False, log_trajectory=False):
@@ -94,7 +89,7 @@ class MarkovChain:
             for examples and such).
 
         """
-        if steps_to_evolve < self.equilibration_steps:
+        if steps_to_evolve <= self.equilibration_steps:
             raise Exception("Will not attempt to run for less steps then are "
                             "necessary for equilibration.")
         print("Starting Markov chain "+self.id+".")
@@ -110,9 +105,9 @@ class MarkovChain:
         if isinstance(self.configuration, Atoms) is False:
            log_trajectory = False
         if log_trajectory:
-            trajectory_logger = TrajectoryWriter(self.id+".traj")
+            trajectory_logger = TrajectoryWriter(os.path.join(self.id, self.id+".traj"))
         if log_energies:
-            energy_file = open(self.id+"_energies.log", "w")
+            energy_file = open(os.path.join(self.id, self.id+"_energies.log", "w"))
             energy_file.write("step\ttotal energy\n")
 
         for step in range(0, steps_to_evolve):
@@ -126,29 +121,32 @@ class MarkovChain:
             if self.__check_acceptance(deltaE):
                 energy = new_energy
                 self.configuration = new_configuration
+
+                # Logging.
+                if print_energies is True:
+                    print("Accepted step, energy is now: ", energy)
+                if log_trajectory:
+                    trajectory_logger.write(new_configuration)
+                if log_energies:
+                    energy_file.write("{0} \t {1:10.4f}\n".format(step, energy))
+
+                # Calculate observables, given that were beyond the
+                # equilibration stage.
                 if step >= self.equilibration_steps:
+                    # The energy is always calculated.
                     accepted_steps += 1
                     self.observables["total_energy"] =\
                         ((self.observables["total_energy"]
                                                    * (accepted_steps - 1)) +
                                                     energy) / accepted_steps
 
-                    if print_energies is True:
-                        print("Accepted step, energy is now: ", energy)
-
-                # Calculate the observables.
-                all_observables_counter += 1
-                if all_observables_counter == \
-                        self.calculate_observables_after_steps\
-                        and step >= self.equilibration_steps:
-                    self.__get_additional_observables(accepted_steps)
-                    all_observables_counter = 0
-
-                # Finally, the logging.
-                if log_trajectory:
-                    trajectory_logger.write(new_configuration)
-                if log_energies:
-                    energy_file.write("{0} \t {1:10.4f}\n".format(step, energy))
+                    # All the other observables are only calculated
+                    # each calculate_observables_after_steps steps.
+                    all_observables_counter += 1
+                    if all_observables_counter == \
+                            self.calculate_observables_after_steps:
+                        self.__get_additional_observables(accepted_steps)
+                        all_observables_counter = 0
 
         end_time = datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
 
@@ -221,15 +219,31 @@ class MarkovChain:
                 self.observables[entry] = self.evaluator.results[entry]
 
     def __save_run(self, metadata):
+        # We clean the observables, because not all can be saved in the JSON
+        # file; some arrays are large and have to be saved in pickle files.
+        cleaned_observables = {}
+        for entry in self.observables.keys():
+            if entry == "ion_ion_energy" or entry == "total_energy":
+                cleaned_observables[entry] = self.observables[entry]
+
+            if entry == "rdf" or entry == "tpcf" or entry == "static_structure_factor":
+                filename = os.path.join(self.id, self.id+"_"+entry+".pkl")
+                with open(filename, 'wb') as handle:
+                    pickle.dump(self.observables[entry], handle, protocol=4)
+                cleaned_observables[entry] = self.id+"_"+entry+".pkl"
+
+        # Now we can save everything to pickle.
         save_dict = {"metadata": metadata, "averaged_observables":
-                    self.observables}
-        with open(self.id+".json", "w", encoding="utf-8") as f:
+                    cleaned_observables}
+        with open(os.path.join(self.id, self.id+".json"), "w",
+                  encoding="utf-8") as f:
             json.dump(save_dict, f, ensure_ascii=False, indent=4)
         try:
             from mala import ASECalculator
             if isinstance(self.evaluator, ASECalculator):
                 print("Saving MALA parameters.")
-                self.evaluator.params.save(self.id+"_mala_params.pkl")
+                self.evaluator.params.save(os.path.join(self.id,
+                                                        self.id+"_mala_params.pkl"))
         except ModuleNotFoundError:
             pass
 
@@ -247,11 +261,6 @@ class MarkovChain:
         else:
             raise Exception("Unknown ensemble selected.")
 
-    # Properties (Observables)
-    @property
-    def total_energy(self):
-        """Total energy of the system in eV."""
-        return self.observables["total_energy"]
 
 
 

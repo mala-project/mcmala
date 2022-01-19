@@ -133,7 +133,7 @@ def run_mc(network, params, input_scaler, output_scaler):
     # Then we can run.
     simulation = mcmala.MarkovChain(298.0, evaluator, suggester,
                                     initial_configuration)
-    simulation.run(20, print_energies=True, save_run=True)
+    simulation.run(20, print_energies=True)
 
 
 network, params, input_scaler, output_scaler = initial_training()

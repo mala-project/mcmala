@@ -1,24 +1,21 @@
 """Averager to extract information from multiple Markov chains."""
 import json
+import os
 
 import numpy as np
 
+from .markovchainresults import MarkovChainResults
 
 class Averager:
     """Averager class used to average over multiple Markov chains."""
 
     def __init__(self, read_logs=False):
         # Observables.
-        self.observables = {"total_energy": [],
-                            "rdf": {"rdf": [], "distances": None},
-                            "static_structure_factor": {"static_structure_factor": [], "kpoints": None},
-                            "tpcf": {"tpcf": [], "radii": None},
-                            "ion_ion_energy": []
-                            }
         self.read_logs = read_logs
+        self.markov_chain_results = []
         self.energies = {}
 
-    def add_markov_chain(self, markov_chain_id):
+    def add_markov_chain(self, markov_chain_id, path_to_folder=None):
         """
         Add a Markov chain to the analysis.
 
@@ -30,43 +27,19 @@ class Averager:
             String identifier of the Markov chain to be added to analysis.
         """
         # Open the Markov chain associated with this ID.
-        with open(markov_chain_id + ".json", encoding="utf-8") as json_file:
-            markov_chain_data = json.load(json_file)
+        self.markov_chain_results.append(
+            MarkovChainResults.load_run(markov_chain_id, path_to_folder))
 
-        # TODO: Add some kind of consistency check here...
-
-        # Add the observables.
-        for entry in markov_chain_data["averaged_observables"].keys():
-            if entry == "rdf":
-                self.observables["rdf"]["rdf"].append(markov_chain_data
-                                                      ["averaged_observables"]
-                                                      ["rdf"]["rdf"])
-                self.observables["rdf"]["distances"] = markov_chain_data\
-                                                ["averaged_observables"]\
-                                                ["rdf"]["distances"]
-            if entry == "static_structure_factor":
-                self.observables["static_structure_factor"]["static_structure_factor"].append(markov_chain_data
-                                                      ["averaged_observables"]
-                                                      ["static_structure_factor"]["static_structure_factor"])
-                self.observables["static_structure_factor"]["kpoints"] = markov_chain_data\
-                                                    ["averaged_observables"]\
-                                                    ["static_structure_factor"]["kpoints"]
-            if entry == "tpcf":
-                self.observables["tpcf"]["tpcf"].append(markov_chain_data
-                                                      ["averaged_observables"]
-                                                      ["tpcf"]["tpcf"])
-                self.observables["tpcf"]["radii"] = markov_chain_data\
-                                                ["averaged_observables"]\
-                                                ["tpcf"]["radii"]
-
-            else:
-                self.observables[entry].append(markov_chain_data
-                                                  ["averaged_observables"]
-                                                        [entry])
         # Try to read the energy file written by the Markov chain.
+        if path_to_folder is None:
+            folder_to_load = markov_chain_id
+        else:
+            folder_to_load = os.path.join(path_to_folder, markov_chain_id)
         if self.read_logs:
             try:
-                energy_file = open(markov_chain_id + "_energies.log", "r")
+                energy_file = open(os.path.join(folder_to_load,
+                                                markov_chain_id +
+                                                "_energies.log", "r"))
                 lines = energy_file.readlines()
                 energy_list = []
                 for line in lines:
@@ -85,27 +58,52 @@ class Averager:
     @property
     def total_energy(self):
         """Total energy of the system (in eV)."""
-        return np.mean(self.observables["total_energy"])
+        total_energy = 0.0
+        for result in self.markov_chain_results:
+            total_energy += result.total_energy
+        return total_energy / len(self.markov_chain_results)
 
     @property
     def rdf(self):
         """Radial distribution function of system"""
-        return np.mean(self.observables["rdf"]["rdf"], axis=0), \
-               self.observables["rdf"]["distances"]
+        rdf = np.zeros_like(self.markov_chain_results[0].rdf)
+        for result in self.markov_chain_results:
+            rdf += result.rdf
+        return rdf / len(self.markov_chain_results)
 
     @property
     def tpcf(self):
         """Three particle correlation function of system."""
-        return np.mean(self.observables["tpcf"]["tpcf"], axis=0), \
-               self.observables["tpcf"]["radii"]
+        tpcf = np.zeros_like(self.markov_chain_results[0].tpcf)
+        for result in self.markov_chain_results:
+            tpcf += result.tpcf
+        return tpcf / len(self.markov_chain_results)
 
     @property
     def static_structure_factor(self):
         """Static structure factor of system."""
-        return np.mean(self.observables["static_structure_factor"]["static_structure_factor"], axis=0), \
-               self.observables["static_structure_factor"]["kpoints"]
+        static_structure_factor = np.zeros_like(self.markov_chain_results[0].static_structure_factor)
+        for result in self.markov_chain_results:
+            static_structure_factor += result.static_structure_factor
+        return static_structure_factor / len(self.markov_chain_results)
+
+    @property
+    def rdf_grid(self):
+        return self.markov_chain_results[0].rdf_grid
+
+    @property
+    def tpcf_grid(self):
+        return self.markov_chain_results[0].tpcf_grid
+
+    @property
+    def static_structure_factor_grid(self):
+        return self.markov_chain_results[0].static_structure_factor_grid
+
 
     @property
     def ion_ion_energy(self):
         """Ion ion energy in eV"""
-        return np.mean(self.observables["ion_ion_energy"])
+        ion_ion_energy = 0.0
+        for result in self.markov_chain_results:
+            ion_ion_energy += result.ion_ion_energy
+        return ion_ion_energy / len(self.markov_chain_results)
