@@ -141,47 +141,7 @@ class MarkovChain:
                 if all_observables_counter == \
                         self.calculate_observables_after_steps\
                         and step >= self.equilibration_steps:
-                    self.evaluator.calculate_properties(
-                                            self.configuration,
-                                            properties=list(self.
-                                                            observables.
-                                                            keys()))
-                    for entry in self.observables.keys():
-                        if entry == "rdf":
-                            if self.observables[entry]["rdf"] is None:
-                                self.observables[entry]["rdf"] = \
-                                    self.evaluator.results[entry][0]
-                            else:
-                                self.observables[entry]["rdf"] = \
-                                    ((self.observables[entry]["rdf"]
-                                      * (accepted_steps - 1)) +
-                                     self.evaluator.results[entry][0]) / \
-                                    accepted_steps
-                            self.observables[entry]["distances"] = self.evaluator.results[entry][1]
-                        if entry == "static_structure_factor":
-                            if self.observables[entry]["static_structure_factor"] is None:
-                                self.observables[entry]["static_structure_factor"] = \
-                                    self.evaluator.results[entry][0]
-                            else:
-                                self.observables[entry]["static_structure_factor"] = \
-                                    ((self.observables[entry]["static_structure_factor"]
-                                      * (accepted_steps - 1)) +
-                                     self.evaluator.results[entry][0]) / \
-                                    accepted_steps
-                            self.observables[entry]["kpoints"] = self.evaluator.results[entry][1]
-                        if entry == "tpcf":
-                            if self.observables[entry]["tpcf"] is None:
-                                self.observables[entry]["tpcf"] = \
-                                    self.evaluator.results[entry][0]
-                            else:
-                                self.observables[entry]["tpcf"] = \
-                                    ((self.observables[entry]["tpcf"]
-                                      * (accepted_steps - 1)) +
-                                     self.evaluator.results[entry][0]) / \
-                                    accepted_steps
-                            self.observables[entry]["radii"] = self.evaluator.results[entry][1]
-                        if entry == "ion_ion_energy":
-                            self.observables[entry] = self.evaluator.results[entry]
+                    self.__get_additional_observables(accepted_steps)
                     all_observables_counter = 0
 
                 # Finally, the logging.
@@ -213,6 +173,53 @@ class MarkovChain:
             }
             self.__save_run(metadata)
 
+    def __get_additional_observables(self, accepted_steps):
+        """Read additional observables from MALA."""
+        self.evaluator.calculate_properties(
+            self.configuration,
+            properties=list(self.
+                            observables.
+                            keys()))
+        for entry in self.observables.keys():
+            if entry == "rdf":
+                if self.observables[entry]["rdf"] is None:
+                    self.observables[entry]["rdf"] = \
+                        self.evaluator.results[entry][0]
+                else:
+                    self.observables[entry]["rdf"] = \
+                        ((self.observables[entry]["rdf"]
+                          * (accepted_steps - 1)) +
+                         self.evaluator.results[entry][0]) / \
+                        accepted_steps
+                self.observables[entry]["distances"] = \
+                self.evaluator.results[entry][1]
+            if entry == "static_structure_factor":
+                if self.observables[entry]["static_structure_factor"] is None:
+                    self.observables[entry]["static_structure_factor"] = \
+                        self.evaluator.results[entry][0]
+                else:
+                    self.observables[entry]["static_structure_factor"] = \
+                        ((self.observables[entry]["static_structure_factor"]
+                          * (accepted_steps - 1)) +
+                         self.evaluator.results[entry][0]) / \
+                        accepted_steps
+                self.observables[entry]["kpoints"] = \
+                self.evaluator.results[entry][1]
+            if entry == "tpcf":
+                if self.observables[entry]["tpcf"] is None:
+                    self.observables[entry]["tpcf"] = \
+                        self.evaluator.results[entry][0]
+                else:
+                    self.observables[entry]["tpcf"] = \
+                        ((self.observables[entry]["tpcf"]
+                          * (accepted_steps - 1)) +
+                         self.evaluator.results[entry][0]) / \
+                        accepted_steps
+                self.observables[entry]["radii"] = \
+                self.evaluator.results[entry][1]
+            if entry == "ion_ion_energy":
+                self.observables[entry] = self.evaluator.results[entry]
+
     def __save_run(self, metadata):
         save_dict = {"metadata": metadata, "averaged_observables":
                     self.observables}
@@ -223,7 +230,7 @@ class MarkovChain:
             if isinstance(self.evaluator, ASECalculator):
                 print("Saving MALA parameters.")
                 self.evaluator.params.save(self.id+"_mala_params.pkl")
-        except:
+        except ModuleNotFoundError:
             pass
 
     def __check_acceptance(self, deltaE):

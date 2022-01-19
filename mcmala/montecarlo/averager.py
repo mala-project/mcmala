@@ -10,8 +10,9 @@ class Averager:
     def __init__(self, read_logs=False):
         # Observables.
         self.observables = {"total_energy": [],
-                            "rdf": {"rdf": [], "dr": 0.0,
-                                           "rMax": 0},
+                            "rdf": {"rdf": [], "distances": None},
+                            "static_structure_factor": {"static_structure_factor": [], "kpoints": None},
+                            "tpcf": {"tpcf": [], "radii": None},
                             "ion_ion_energy": []
                             }
         self.read_logs = read_logs
@@ -43,6 +44,20 @@ class Averager:
                 self.observables["rdf"]["distances"] = markov_chain_data\
                                                 ["averaged_observables"]\
                                                 ["rdf"]["distances"]
+            if entry == "static_structure_factor":
+                self.observables["static_structure_factor"]["static_structure_factor"].append(markov_chain_data
+                                                      ["averaged_observables"]
+                                                      ["static_structure_factor"]["static_structure_factor"])
+                self.observables["static_structure_factor"]["kpoints"] = markov_chain_data\
+                                                    ["averaged_observables"]\
+                                                    ["static_structure_factor"]["kpoints"]
+            if entry == "tpcf":
+                self.observables["tpcf"]["tpcf"].append(markov_chain_data
+                                                      ["averaged_observables"]
+                                                      ["tpcf"]["tpcf"])
+                self.observables["tpcf"]["radii"] = markov_chain_data\
+                                                ["averaged_observables"]\
+                                                ["tpcf"]["radii"]
 
             else:
                 self.observables[entry].append(markov_chain_data
@@ -74,9 +89,21 @@ class Averager:
 
     @property
     def rdf(self):
-        """Total energy of the system (in eV)."""
-        return np.mean(self.observables["rdf"]["rdf"]), \
+        """Radial distribution function of system"""
+        return np.mean(self.observables["rdf"]["rdf"], axis=0), \
                self.observables["rdf"]["distances"]
+
+    @property
+    def tpcf(self):
+        """Three particle correlation function of system."""
+        return np.mean(self.observables["tpcf"]["tpcf"], axis=0), \
+               self.observables["tpcf"]["radii"]
+
+    @property
+    def static_structure_factor(self):
+        """Static structure factor of system."""
+        return np.mean(self.observables["static_structure_factor"]["static_structure_factor"], axis=0), \
+               self.observables["static_structure_factor"]["kpoints"]
 
     @property
     def ion_ion_energy(self):
