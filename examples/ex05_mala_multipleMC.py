@@ -41,7 +41,7 @@ def run_mc(network, params, input_scaler, output_scaler):
     inference_data_handler = mala.DataHandler(params,
                                               input_data_scaler=input_scaler,
                                               output_data_scaler=output_scaler)
-    evaluator = mala.ASECalculator(params, network, inference_data_handler,
+    evaluator = mala.MALA(params, network, inference_data_handler,
                                    ["qe.out",
                                     os.path.join(data_path,
                                                  "Be_snapshot1.out")])
