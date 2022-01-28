@@ -238,14 +238,11 @@ class MarkovChain(MarkovChainResults):
         with open(os.path.join(self.id, self.id+".json"), "w",
                   encoding="utf-8") as f:
             json.dump(save_dict, f, ensure_ascii=False, indent=4)
-        try:
-            from mala import ASECalculator
-            if isinstance(self.evaluator, ASECalculator):
-                print("Saving MALA parameters.")
-                self.evaluator.params.save(os.path.join(self.id,
-                                                        self.id+"_mala_params.json"))
-        except ModuleNotFoundError:
-            pass
+
+        # Save the MALA based data of the observables.
+        self.evaluator.save_calculator(os.path.join(self.id,
+                                                    self.id+"_evaluator.json"))
+
 
     def __check_acceptance(self, deltaE):
         if self.ensemble == "nvt":
