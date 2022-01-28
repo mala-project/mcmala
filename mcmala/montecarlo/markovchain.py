@@ -243,7 +243,7 @@ class MarkovChain(MarkovChainResults):
             if isinstance(self.evaluator, ASECalculator):
                 print("Saving MALA parameters.")
                 self.evaluator.params.save(os.path.join(self.id,
-                                                        self.id+"_mala_params.pkl"))
+                                                        self.id+"_mala_params.json"))
         except ModuleNotFoundError:
             pass
 
