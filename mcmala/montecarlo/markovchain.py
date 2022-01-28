@@ -173,6 +173,12 @@ class MarkovChain(MarkovChainResults):
 
     def __get_additional_observables(self, accepted_steps):
         """Read additional observables from MALA."""
+
+        # The total energy is always calculated. If it is the ONLY thing
+        # being calculated, we might as well just not calculate it.
+        if len(self.observables) == 1:
+            return
+
         self.evaluator.calculate_properties(
             self.configuration,
             properties=list(self.
