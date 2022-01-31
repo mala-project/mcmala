@@ -1,20 +1,14 @@
 import os
 
 from ase.io import read
-from ase.visualize import view
-from ase.calculators.espresso import Espresso
 import mcmala
-import mala
-from mala import printout
 from mala.datahandling.data_repo import data_repo_path
-
 
 
 data_path = os.path.join(os.path.join(data_repo_path, "Be2"), "training_data")
 
 input_data = {
     "calculation": 'scf',
-    "verbosity": 'high',
     "restart_mode": 'from_scratch',
     "pseudo_dir": '/home/fiedlerl/tools/pslibrary/pbe/PSEUDOPOTENTIALS/',
     "tstress": True,
@@ -37,14 +31,16 @@ input_data = {
     "mixing_beta": 0.1
 }
 pseudopotentials = {"Be": "Be.pbe-n-rrkjus_psl.1.0.0.UPF"}
-kpts = (4,4,4)
-evaluator = mcmala.EspressoMC(input_data=input_data,
-                              pseudopotentials=pseudopotentials,
-                              kpts=kpts)
+kpts = (4, 4, 4)
+mcmala.use_mpi()
+
+evaluator = mcmala.EspressoMC(inputfile="espresso.pwi")
+
 # Initial configuration is one of the training snapshots.
-initial_configuration = read(os.path.join(data_path,
-                                          "Be_snapshot1.out"),
+initial_configuration = read(os.path.join(data_path, "Be_snapshot1.out"),
                              format="espresso-out")
+evaluator.write_input_file(initial_configuration, input_data,
+                           pseudopotentials, kpts)
 
 # Atomic displacer means one atom at a time is randomly displaced.
 suggester = mcmala.AtomDisplacer(0.2)

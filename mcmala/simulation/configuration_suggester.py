@@ -2,6 +2,8 @@
 
 from abc import ABC, abstractmethod
 
+from mcmala.common.parallelizer import get_size, get_rank, barrier, get_comm
+
 
 class ConfigurationSuggester(ABC):
     """Abstract base class for configuration suggesters."""
@@ -37,3 +39,12 @@ class ConfigurationSuggester(ABC):
         info : dict
 
         """
+    @staticmethod
+    def collect_configuration(local_configuration):
+        barrier()
+        if get_size() == 1:
+            return local_configuration
+        else:
+            positions = get_comm().bcast(local_configuration.get_positions(), root=0)
+            local_configuration.set_positions(positions)
+            return local_configuration

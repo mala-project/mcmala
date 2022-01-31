@@ -82,6 +82,9 @@ class AtomDisplacer(ConfigurationSuggester):
         new_configuration.set_positions(positions)
         if self.enforce_pbc:
             new_configuration = AtomDisplacer._enforce_pbc(new_configuration)
+
+        # Ensure there is only one configuration across nodes.
+        new_configuration = self.collect_configuration(new_configuration)
         return new_configuration
 
     def get_info(self):

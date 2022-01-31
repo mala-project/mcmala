@@ -11,6 +11,8 @@ from ase.calculators.calculator import Calculator
 import numpy as np
 
 from mcmala import ConfigurationSuggester
+from mcmala.common.parallelizer import get_rank, printout, barrier, get_comm,\
+                                       get_size
 from .markovchainresults import MarkovChainResults
 from datetime import datetime
 
@@ -92,10 +94,10 @@ class MarkovChain(MarkovChainResults):
         if steps_to_evolve <= self.equilibration_steps:
             raise Exception("Will not attempt to run for less steps then are "
                             "necessary for equilibration.")
-        print("Starting Markov chain "+self.id+".")
+        printout("Starting Markov chain "+self.id+".")
         start_time = datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
 
-        self.evaluator.calculate(self.configuration)
+        self.evaluator.calculate(atoms=self.configuration)
         energy = self.evaluator.results["energy"]
         self.observables["total_energy"] = energy
         accepted_steps = 0
@@ -103,12 +105,14 @@ class MarkovChain(MarkovChainResults):
 
         # Prepare logging, if necessary.
         if isinstance(self.configuration, Atoms) is False:
-           log_trajectory = False
-        if log_trajectory:
-            trajectory_logger = TrajectoryWriter(os.path.join(self.id, self.id+".traj"))
-        if log_energies:
-            energy_file = open(os.path.join(self.id, self.id+"_energies.log", "w"))
-            energy_file.write("step\ttotal energy\n")
+            log_trajectory = False
+
+        if get_rank() == 0:
+            if log_trajectory:
+                trajectory_logger = TrajectoryWriter(os.path.join(self.id, self.id+".traj"))
+            if log_energies:
+                energy_file = open(os.path.join(self.id, self.id+"_energies.log", "w"))
+                energy_file.write("step\ttotal energy\n")
 
         for step in range(0, steps_to_evolve):
             new_configuration = self.configuration_suggester.\
@@ -124,52 +128,56 @@ class MarkovChain(MarkovChainResults):
 
                 # Logging.
                 if print_energies is True:
-                    print("Accepted step, energy is now: ", energy)
-                if log_trajectory:
-                    trajectory_logger.write(new_configuration)
-                if log_energies:
-                    energy_file.write("{0} \t {1:10.4f}\n".format(step, energy))
+                    printout("Accepted step, energy is now: ", energy)
 
-                # Calculate observables, given that were beyond the
-                # equilibration stage.
-                if step >= self.equilibration_steps:
-                    # The energy is always calculated.
-                    accepted_steps += 1
-                    self.observables["total_energy"] =\
-                        ((self.observables["total_energy"]
-                                                   * (accepted_steps - 1)) +
-                                                    energy) / accepted_steps
+                if get_rank() == 0:
+                    if log_trajectory:
+                        trajectory_logger.write(new_configuration)
+                    if log_energies:
+                        energy_file.write("{0} \t {1:10.4f}\n".format(step, energy))
 
-                    # All the other observables are only calculated
-                    # each calculate_observables_after_steps steps.
-                    all_observables_counter += 1
-                    if all_observables_counter == \
-                            self.calculate_observables_after_steps:
-                        self.__get_additional_observables(accepted_steps)
-                        all_observables_counter = 0
+                    # Calculate observables, given that were beyond the
+                    # equilibration stage.
+                    if step >= self.equilibration_steps:
+                        # The energy is always calculated.
+                        accepted_steps += 1
+                        self.observables["total_energy"] =\
+                            ((self.observables["total_energy"]
+                                                       * (accepted_steps - 1)) +
+                                                        energy) / accepted_steps
+
+                        # All the other observables are only calculated
+                        # each calculate_observables_after_steps steps.
+                        all_observables_counter += 1
+                        if all_observables_counter == \
+                                self.calculate_observables_after_steps:
+                            self.__get_additional_observables(accepted_steps)
+                            all_observables_counter = 0
 
         end_time = datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
 
-        if log_energies:
-            energy_file.close()
+        if get_rank() == 0:
+            if log_energies:
+                energy_file.close()
 
-        print("Markov chain", self.id, "finished, saving results.")
-        if save_run:
-            # Construct meta data.
-            metadata = {
-                "id": self.id,
-                "temperature": self.temperatureK,
-                "configuration_suggester": self.configuration_suggester.get_info(),
-                "configuration_type": type(self.configuration).__name__,
-                "evaluator": type(self.evaluator).__name__,
-                "start_time": start_time,
-                "end_time": end_time,
-                "ensemble": self.ensemble,
-                "steps_evolved": steps_to_evolve,
-                "accepted_steps": accepted_steps,
-                "equilibration_steps": self.equilibration_steps,
-            }
-            self.__save_run(metadata)
+            printout("Markov chain", self.id, "finished, saving results.")
+            if save_run:
+                # Construct meta data.
+                metadata = {
+                    "id": self.id,
+                    "temperature": self.temperatureK,
+                    "configuration_suggester": self.configuration_suggester.get_info(),
+                    "configuration_type": type(self.configuration).__name__,
+                    "evaluator": type(self.evaluator).__name__,
+                    "start_time": start_time,
+                    "end_time": end_time,
+                    "ensemble": self.ensemble,
+                    "steps_evolved": steps_to_evolve,
+                    "accepted_steps": accepted_steps,
+                    "equilibration_steps": self.equilibration_steps,
+                    "number_of_ranks": get_size()
+                }
+                self.__save_run(metadata)
 
     def __get_additional_observables(self, accepted_steps):
         """Read additional observables from MALA."""
@@ -249,20 +257,32 @@ class MarkovChain(MarkovChainResults):
         self.evaluator.save_calculator(os.path.join(self.id,
                                                     self.id+"_evaluator.json"))
 
-
     def __check_acceptance(self, deltaE):
+        return_value = False
         if self.ensemble == "nvt":
             if deltaE > 0.0:
                 randomNumber = random()
                 probability = np.exp(
                     -1.0 * deltaE / (kB * self.temperatureK))
                 if probability < randomNumber:
-                    return False
-            return True
+                    return_value = False
+                else:
+                    return_value = True
+            else:
+                return_value = True
         elif self.ensemble == "debug":
-            return True
+            return_value = True
         else:
             raise Exception("Unknown ensemble selected.")
+
+        # synchronize across nodes.
+        barrier()
+        if get_size() == 1:
+            return return_value
+        else:
+            return_value = get_comm().bcast(return_value, root=0)
+            return return_value
+
 
 
 
