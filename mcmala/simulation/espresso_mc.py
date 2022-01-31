@@ -62,25 +62,6 @@ class EspressoMC(QEpyCalculator):
             raise Exception("Non-MALA calculators cannot calculate ion-ion "
                             "energy yet.")
 
-    def write_input_file(self, atoms, input_data, pseudopotentials, kpts):
-        """
-        Convenience function to write input file for calculation.
-
-        Parameters
-        ----------
-        input_data
-        pseudopotentials
-        kpts
-
-        Returns
-        -------
-
-        """
-        write(self.inputfile, atoms, "espresso-in",
-              input_data=input_data,
-              pseudopotentials=pseudopotentials,
-              kpts=kpts)
-
     def save_calculator(self, filename):
         """
         Saves enough information about the calculator to be reconstructed
