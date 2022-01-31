@@ -70,8 +70,9 @@ class MarkovChain(MarkovChainResults):
                                           additonal_observables=additonal_observables)
 
         # Create folder for this Markov chain.
-        if not os.path.exists(self.id):
-            os.makedirs(self.id)
+        if get_rank() == 0:
+            if not os.path.exists(self.id):
+                os.makedirs(self.id)
 
     def run(self, steps_to_evolve, print_energies=False,
             save_run=True, log_energies=False, log_trajectory=False):
