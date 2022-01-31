@@ -3,7 +3,12 @@ from random import randrange
 from copy import deepcopy
 
 import numpy as np
-import matplotlib.pyplot as plt
+matplotlib_avail = True
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    matplotlib_avail = False
+    pass
 
 from ase.calculators.calculator import Calculator
 from .configuration_suggester import ConfigurationSuggester
@@ -61,29 +66,32 @@ class IsingGrid:
             the plot will have been added to this one.
 
         """
-        if ax is None:
-            fig = plt.figure(figsize=(9, 9))
-            ax = fig.add_subplot(1, 1, 1)
-        plusx = []
-        plusy = []
-        minusx = []
-        minusy = []
-        for i in range(0, self.lattice_size):
-            for j in range(0, self.lattice_size):
-                if self.lattice[i,j] == 1:
-                    plusx.append(i)
-                    plusy.append(j)
-                else:
-                    minusx.append(i)
-                    minusy.append(j)
+        if matplotlib_avail:
+            if ax is None:
+                fig = plt.figure(figsize=(9, 9))
+                ax = fig.add_subplot(1, 1, 1)
+            plusx = []
+            plusy = []
+            minusx = []
+            minusy = []
+            for i in range(0, self.lattice_size):
+                for j in range(0, self.lattice_size):
+                    if self.lattice[i,j] == 1:
+                        plusx.append(i)
+                        plusy.append(j)
+                    else:
+                        minusx.append(i)
+                        minusy.append(j)
 
-        ax.scatter(plusx, plusy, label="plus", marker="s",
-                   color="tab:red", s=470)
-        ax.scatter(minusx, minusy, label="minus", marker="s",
-                   color="tab:blue", s=470)
+            ax.scatter(plusx, plusy, label="plus", marker="s",
+                       color="tab:red", s=470)
+            ax.scatter(minusx, minusy, label="minus", marker="s",
+                       color="tab:blue", s=470)
 
-        return ax
-
+            return ax
+        else:
+            raise Exception("No matplotlib found, cannot visualize Ising "
+                            "grid.")
 
 class IsingModelEvaluator(Calculator):
     """
