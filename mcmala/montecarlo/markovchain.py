@@ -112,7 +112,7 @@ class MarkovChain(MarkovChainResults):
             if log_trajectory:
                 trajectory_logger = TrajectoryWriter(os.path.join(self.id, self.id+".traj"))
             if log_energies:
-                energy_file = open(os.path.join(self.id, self.id+"_energies.log", "w"))
+                energy_file = open(os.path.join(self.id, self.id+"_energies.log"), "w")
                 energy_file.write("step\ttotal energy\n")
 
         for step in range(0, steps_to_evolve):
