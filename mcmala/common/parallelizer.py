@@ -65,6 +65,8 @@ def get_size():
     """
     if _use_mpi:
         return comm.Get_size()
+    else:
+        return 1
 
 
 # TODO: This is hacky, improve it.

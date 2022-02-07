@@ -33,8 +33,11 @@ class MarkovChainResults():
             if entry == "tpcf":
                 self.observables[entry] = {"tpcf": None, "radii": None}
 
+        # All the accepted energies, for plotting and such.
+        self.energies = None
+
     @classmethod
-    def load_run(cls, markov_chain_id, path_to_folder=None):
+    def load_run(cls, markov_chain_id, path_to_folder=None, read_energy=False):
         if path_to_folder is None:
             folder_to_load = markov_chain_id
         else:
@@ -61,6 +64,20 @@ class MarkovChainResults():
                                         markov_chain_data["averaged_observables"][entry])
                 with open(filename, 'rb') as handle:
                     loaded_result.observables[entry] = pickle.load(handle)
+
+        # Load energy, if requested.
+        try:
+            loaded_result.energies = []
+            energy_file = open(
+                os.path.join(markov_chain_id, markov_chain_id + "_energies.log"), "r")
+            lines = energy_file.readlines()
+            for line in lines:
+                if "step" not in line:
+                    loaded_result.energies.append(float(line.split()[1]))
+
+        except FileNotFoundError:
+            print("Could not find energy file.")
+
         return loaded_result
 
     # Properties (Observables)
