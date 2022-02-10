@@ -51,4 +51,5 @@ suggester = mcmala.AtomDisplacer(0.2)
 simulation = mcmala.MarkovChain(298.0, evaluator, suggester,
                                 initial_configuration, ensemble="debug",
                                 markov_chain_id="ex06")
-simulation.run(20, print_energies=True)
+simulation.run(20, print_energies=True, checkpoints_after_steps=2,
+               log_energies=True, log_trajectory=True)

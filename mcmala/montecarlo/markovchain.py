@@ -75,7 +75,8 @@ class MarkovChain(MarkovChainResults):
                 os.makedirs(self.id)
 
     def run(self, steps_to_evolve, print_energies=False,
-            save_run=True, log_energies=False, log_trajectory=False):
+            save_run=True, log_energies=False, log_trajectory=False,
+            checkpoints_after_steps=0):
         """
         Run this Markov chain for a specified number of steps.
 
@@ -103,6 +104,7 @@ class MarkovChain(MarkovChainResults):
         self.observables["total_energy"] = energy
         accepted_steps = 0
         all_observables_counter = 0
+        checkpoint_counter = 0
 
         # Prepare logging, if necessary.
         if isinstance(self.configuration, Atoms) is False:
@@ -155,7 +157,24 @@ class MarkovChain(MarkovChainResults):
                             self.__get_additional_observables(accepted_steps)
                             all_observables_counter = 0
 
-        end_time = datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
+                    # Create a checkpoint, if necessary.
+                    if checkpoints_after_steps > 0:
+                        if checkpoint_counter >= checkpoints_after_steps:
+                            if log_energies:
+                                energy_file.flush()
+
+                            printout("Markov chain", self.id,
+                                     "creating checkpoint.")
+                            if save_run:
+                                # step + 1 because it's NUMBER of steps,
+                                # not step number.
+                                self.__save_run(start_time,
+                                                datetime.now().strftime(
+                                                    "%d-%b-%Y (%H:%M:%S.%f)"),
+                                                step+1,
+                                                accepted_steps)
+                            checkpoint_counter = 0
+                checkpoint_counter += 1
 
         if get_rank() == 0:
             if log_energies:
@@ -163,22 +182,9 @@ class MarkovChain(MarkovChainResults):
 
             printout("Markov chain", self.id, "finished, saving results.")
             if save_run:
-                # Construct meta data.
-                metadata = {
-                    "id": self.id,
-                    "temperature": self.temperatureK,
-                    "configuration_suggester": self.configuration_suggester.get_info(),
-                    "configuration_type": type(self.configuration).__name__,
-                    "evaluator": type(self.evaluator).__name__,
-                    "start_time": start_time,
-                    "end_time": end_time,
-                    "ensemble": self.ensemble,
-                    "steps_evolved": steps_to_evolve,
-                    "accepted_steps": accepted_steps,
-                    "equilibration_steps": self.equilibration_steps,
-                    "number_of_ranks": get_size()
-                }
-                self.__save_run(metadata)
+                self.__save_run(start_time,
+                                datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)"),
+                                steps_to_evolve, accepted_steps)
 
     def __get_additional_observables(self, accepted_steps):
         """Read additional observables from MALA."""
@@ -233,7 +239,23 @@ class MarkovChain(MarkovChainResults):
             if entry == "ion_ion_energy":
                 self.observables[entry] = self.evaluator.results[entry]
 
-    def __save_run(self, metadata):
+    def __save_run(self, start_time, end_time, step_evolved, accepted_steps):
+        # Construct meta data.
+        metadata = {
+            "id": self.id,
+            "temperature": self.temperatureK,
+            "configuration_suggester": self.configuration_suggester.get_info(),
+            "configuration_type": type(self.configuration).__name__,
+            "evaluator": type(self.evaluator).__name__,
+            "start_time": start_time,
+            "end_time": end_time,
+            "ensemble": self.ensemble,
+            "steps_evolved": step_evolved,
+            "accepted_steps": accepted_steps,
+            "equilibration_steps": self.equilibration_steps,
+            "number_of_ranks": get_size()
+        }
+
         # We clean the observables, because not all can be saved in the JSON
         # file; some arrays are large and have to be saved in pickle files.
         cleaned_observables = {}
