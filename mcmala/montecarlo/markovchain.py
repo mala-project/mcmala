@@ -102,8 +102,15 @@ class MarkovChain(MarkovChainResults):
         start_time = datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
 
         self.evaluator.calculate(atoms=self.configuration)
-        energy = self.evaluator.results["energy"]
-        self.observables["total_energy"] = energy
+        # The first energy always will be for the first, initial configuration.
+        # Maybe there is a way around that, but for now, it seems the best
+        # we can do for restart calculations is just reading from file.
+        if self.is_continuation_run:
+            energy = self.energies[-1]
+        else:
+            energy = self.evaluator.results["energy"]
+            self.observables["total_energy"] = energy
+
         all_observables_counter = 0
         checkpoint_counter = 0
 
@@ -130,7 +137,7 @@ class MarkovChain(MarkovChainResults):
             new_configuration = self.configuration_suggester. \
                 suggest_new_configuration(self.configuration)
 
-            self.evaluator.calculate(self.configuration)
+            self.evaluator.calculate(new_configuration)
             new_energy = self.evaluator.results["energy"]
             deltaE = new_energy - energy
 
@@ -205,8 +212,9 @@ class MarkovChain(MarkovChainResults):
                                                       markov_chain_id + ".traj"))
 
         # Load from the files.
-        markov_chain_data, additonal_observables = cls._load_files(markov_chain_id,
-                                                                   path_to_folder)
+        markov_chain_data, additonal_observables, energies = cls._load_files(markov_chain_id,
+                                                                   path_to_folder,
+                                                                   True)
         temperature = markov_chain_data["metadata"]["temperature"]
         calculate_observables_after_steps = \
             markov_chain_data["metadata"]["calculate_observables_after_steps"]
@@ -222,6 +230,7 @@ class MarkovChain(MarkovChainResults):
                                     equilibration_steps=equilibration_steps,
                                     markov_chain_id=markov_chain_id,
                                     additonal_observables=additonal_observables)
+        loaded_result.energies  = energies
 
         # We have to process the loaded data so that everything fits.
         loaded_result._process_loaded_obervables(markov_chain_data)

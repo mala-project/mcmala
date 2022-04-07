@@ -41,34 +41,21 @@ class MarkovChainResults():
     @classmethod
     def load_run(cls, markov_chain_id, path_to_folder=None, read_energy=False):
         # Load from the files.
-        markov_chain_data, additonal_observables = cls._load_files(markov_chain_id,
-                                                                   path_to_folder)
-
+        markov_chain_data, additonal_observables, energies = cls._load_files(markov_chain_id,
+                                                                   path_to_folder,
+                                                                   read_energy)
         # Create the object.
         loaded_result = MarkovChainResults(markov_chain_id=markov_chain_id,
                                            additonal_observables=additonal_observables)
+        if read_energy:
+            loaded_result.energies  = energies
 
         # We have to process the loaded data so that everything fits.
         loaded_result._process_loaded_obervables(markov_chain_data)
-
-        # Load energy, if requested.
-        if read_energy:
-            try:
-                loaded_result.energies = []
-                energy_file = open(
-                    os.path.join(markov_chain_id, markov_chain_id + "_energies.log"), "r")
-                lines = energy_file.readlines()
-                for line in lines:
-                    if "step" not in line:
-                        loaded_result.energies.append(float(line.split()[1]))
-
-            except FileNotFoundError:
-                print("Could not find energy file.")
-
         return loaded_result
 
     @staticmethod
-    def _load_files(markov_chain_id, path_to_folder):
+    def _load_files(markov_chain_id, path_to_folder, read_energy):
         if path_to_folder is None:
             folder_to_load = markov_chain_id
         else:
@@ -82,7 +69,19 @@ class MarkovChainResults():
         # Now we can create the MarkovChainResults object.
         additonal_observables = list(markov_chain_data["averaged_observables"].keys())
         additonal_observables.remove("total_energy")
-        return markov_chain_data, additonal_observables
+
+        # Load energy, if requested.
+        energies = None
+        if read_energy:
+            energies = []
+            energy_file = open(
+                os.path.join(folder_to_load, markov_chain_id + "_energies.log"), "r")
+            lines = energy_file.readlines()
+            for line in lines:
+                if "step" not in line:
+                    energies.append(float(line.split()[1]))
+
+        return markov_chain_data, additonal_observables,energies
 
     def _process_loaded_obervables(self, markov_chain_data):
         self.steps_evolved = markov_chain_data["metadata"][
