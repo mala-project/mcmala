@@ -1,8 +1,9 @@
 from qepy.calculator import QEpyCalculator
 from ase.calculators.calculator import all_changes
-from ase.io import write
-from mcmala.common.parallelizer import get_comm
-
+from ase.io.espresso import read_fortran_namelist
+from ase.io import write, read
+from mcmala.common.parallelizer import get_comm, get_rank
+from mcmala.common.converters import kelvin_to_rydberg
 is_mala_available = True
 try:
     import mala
@@ -11,9 +12,9 @@ except ModuleNotFoundError:
 
 
 class EspressoMC(QEpyCalculator):
-    def __init__(self, atoms=None, task='scf', embed=None,
+    def __init__(self, temperature=None, atoms=None, task='scf', embed=None,
                  inputfile=None, input_data=None, wrap=False,
-                 lmovecell=False, mala_params=None, **kwargs):
+                 lmovecell=False, mala_params=None, temp_folder=None, **kwargs):
         """
 
         Parameters
@@ -25,6 +26,12 @@ class EspressoMC(QEpyCalculator):
         mala_params
         kwargs
         """
+        # TODO: For now - make this pretty later. This will break super easy
+        # and it is ugly
+        if inputfile is not None:
+            inputfile = self._copy_and_modify_input_file(inputfile, temperature,
+                                                         temp_folder)
+
         super(EspressoMC, self).__init__(atoms=atoms, comm=get_comm(),
                                          task=task,
                                          embed=embed, inputfile=inputfile,
@@ -77,3 +84,43 @@ class EspressoMC(QEpyCalculator):
         """
         if is_mala_available and self.mala_params is not None:
             self.mala_params.save(filename)
+
+    def _copy_and_modify_input_file(self, filename, temperature,
+                                    temp_folder):
+        input_file = open(filename)
+        atoms = read(filename)
+        name_list = read_fortran_namelist(input_file)
+        input_data = {**{**dict(name_list[0]["control"]),
+                         **dict(name_list[0]["electrons"])},
+                      **dict(name_list[0]["system"])}
+        other_data_list = name_list[1]
+        found_k_points = False
+        found_atomic_species = False
+
+        for entry in other_data_list:
+            if found_k_points:
+                k_points = (
+                entry.split()[0], entry.split()[1], entry.split()[2])
+                found_k_points = False
+
+            if found_atomic_species:
+                pseudopotentials = {entry.split()[0]: entry.split()[-1]}
+                found_atomic_species = False
+
+            if "K_POINTS" in entry:
+                found_k_points = True
+
+            if "ATOMIC_SPECIES" in entry:
+                found_atomic_species = True
+
+
+        input_data["outdir"] = temp_folder
+        out_file_name = filename
+        if temperature is not None:
+            out_file_name = str(temperature) + "K" + filename
+            input_data["degauss"] = round(kelvin_to_rydberg(temperature), 7)
+        if get_rank() == 0:
+            write(out_file_name, atoms, "espresso-in",
+                  input_data=input_data, pseudopotentials=pseudopotentials,
+                  kpts=k_points, parallel=False)
+        return out_file_name

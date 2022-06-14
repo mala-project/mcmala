@@ -7,6 +7,7 @@ except ModuleNotFoundError:
 
 _use_mpi = False
 comm = None
+world_comm = None
 
 
 def set_mpi_status(new_value):
@@ -27,6 +28,8 @@ def set_mpi_status(new_value):
     if _use_mpi:
         global comm
         comm = MPI.COMM_WORLD
+        global world_comm
+        world_comm = MPI.COMM_WORLD
 
     # else:
     #     global comm
@@ -37,7 +40,7 @@ def use_mpi():
     set_mpi_status(True)
 
 
-def get_rank():
+def get_rank(_comm=None):
     """
     Get the rank of the current thread.
 
@@ -49,12 +52,14 @@ def get_rank():
         The rank of the current thread.
 
     """
+    if _comm is None:
+        _comm = comm
     if _use_mpi:
-        return comm.Get_rank()
+        return _comm.Get_rank()
     return 0
 
 
-def get_size():
+def get_size(_comm=None):
     """
     Get the number of ranks.
 
@@ -63,8 +68,10 @@ def get_size():
     size : int
         The number of ranks.
     """
+    if _comm is None:
+        _comm = comm
     if _use_mpi:
-        return comm.Get_size()
+        return _comm.Get_size()
     else:
         return 1
 
@@ -81,6 +88,25 @@ def get_comm():
 
     """
     return comm
+
+
+def get_world_comm():
+    """
+    Return the MPI communicator, if MPI is being used.
+
+    Returns
+    -------
+    comm : MPI.COMM_WORLD
+        A MPI communicator.
+
+    """
+    return world_comm
+
+
+def split_comm(color, key):
+    global comm
+    new_comm = comm.Split(color, key)
+    comm = new_comm
 
 
 def printout(*values, sep=' '):
@@ -101,8 +127,10 @@ def printout(*values, sep=' '):
         print(outstring)
 
 
-def barrier():
+def barrier(_comm=None):
+    if _comm is None:
+        _comm = comm
     if _use_mpi:
-        return comm.Barrier()
+        return _comm.Barrier()
     else:
         return
