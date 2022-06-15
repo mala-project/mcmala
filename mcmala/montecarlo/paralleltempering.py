@@ -4,18 +4,29 @@ from mcmala.montecarlo.markovchain import MarkovChain
 import numpy as np
 from ase.units import kB
 from random import random
+from os import makedirs
+from os.path import join, exists
+import json
+from datetime import datetime
+
 
 class ParallelTempering:
 
     # TODO: Fix the handling of evaluator input
     def __init__(self, temperatures, evaluator_class, evaluator_input_file,
-                 configuration_suggester,
-                 initial_configuration, exchange_after_step, calculate_observables_after_steps=1,
-                 markov_chain_id="mcmala_default", additonal_observables=[],
-                 ensemble="nvt", equilibration_steps=0):
+                 configuration_suggester,exchange_after_step,
+                 initial_configuration=None, calculate_observables_after_steps=1,
+                 parallel_tempering_id="mcmala_default", additonal_observables=[],
+                 ensemble="nvt", equilibration_steps=0,
+                 load_markov_chains_from_file=False):
         self.world_comm = get_world_comm()
         self.exchange_after_step = exchange_after_step
         self.temperatures = temperatures
+        self.id = parallel_tempering_id
+        self.steps_evolved = 0
+        if get_rank() == 0:
+            if not exists(self.id):
+                makedirs(self.id)
 
         # Create the communicators and output the parallelization scheme.
         number_of_ranks = get_size()
@@ -54,18 +65,25 @@ class ParallelTempering:
         self.temperature = temperatures[self.instance_number]
         evaluator = evaluator_class(inputfile=evaluator_input_file,
                                     temperature=self.temperature,
-                                    temp_folder=markov_chain_id+str(self.temperature)+"/temp")
-        self.markov_chain = MarkovChain(self.temperature,
-                                        evaluator, configuration_suggester,
-                                        initial_configuration,
-                                        calculate_observables_after_steps=calculate_observables_after_steps,
-                                        markov_chain_id=markov_chain_id+str(self.temperature),
-                                        additonal_observables=additonal_observables, ensemble=ensemble,
-                                        equilibration_steps=equilibration_steps)
+                                    temp_folder=join(parallel_tempering_id, str(self.temperature), "temp"))
+        if load_markov_chains_from_file:
+            self.markov_chain = MarkovChain.load_run(self.temperature,
+                                                     evaluator,
+                                                     configuration_suggester,
+                                                     path_to_folder=parallel_tempering_id)
+        else:
+            self.markov_chain = MarkovChain(self.temperature,
+                                            evaluator, configuration_suggester,
+                                            initial_configuration,
+                                            calculate_observables_after_steps=calculate_observables_after_steps,
+                                            markov_chain_id=str(self.temperature),
+                                            additonal_observables=additonal_observables, ensemble=ensemble,
+                                            equilibration_steps=equilibration_steps,
+                                            path_to_folder=parallel_tempering_id)
 
     def run(self, steps_to_evolve, print_energies=False,
             save_run=True, log_energies=False, log_trajectory=False,
-            checkpoints_after_steps=0):
+            create_checkpoints=True):
 
         # Set up the run for all Markov chains.
         self.markov_chain._setup_run(steps_to_evolve, log_energies,
@@ -78,12 +96,12 @@ class ParallelTempering:
         while current_step < steps_to_evolve:
             # Run the Markov chain of this instance for
             self.markov_chain._run(current_step+self.exchange_after_step, print_energies, log_trajectory,
-                                   log_energies, checkpoints_after_steps, save_run)
+                                   log_energies, 0, save_run)
 
             # Wait till all Markov chains have finished.
             barrier(self.world_comm)
             if get_rank(self.world_comm) == 0:
-                printout(current_step, "PARALLEL TEMPERING EXCHANGE START.")
+                printout("PARALLEL TEMPERING EXCHANGE START (ITERATION #{0}).".format(current_step))
             start_value = 0 if starting_swap_at_zero else 1
             starting_swap_at_zero = not starting_swap_at_zero
             if get_rank() == 0:
@@ -152,11 +170,54 @@ class ParallelTempering:
                                 self.markov_chain.current_energy = other_energy
 
             barrier(self.world_comm)
-            current_step += self.exchange_after_step
             if get_rank(self.world_comm) == 0:
-                printout(current_step, "PARALLEL TEMPERING EXCHANGE END.")
+                printout("PARALLEL TEMPERING EXCHANGE END.")
+            current_step += self.exchange_after_step
+            if create_checkpoints:
+                if get_rank(self.world_comm) == 0:
+                    printout("Checkpointing the simulation.")
+                self.__save_run(current_step, log_energies)
 
         self.markov_chain._wrap_up_run(log_energies, save_run, steps_to_evolve)
+
+    def __save_run(self, step_evolved, log_energies):
+        self.steps_evolved = step_evolved
+        if get_rank(self.world_comm) == 0:
+            metadata = {
+                "id": self.id,
+                "temperatures": self.temperatures,
+                "steps_evolved": self.steps_evolved,
+                "exchange_after_step": self.exchange_after_step
+            }
+            save_dict = {"metadata": metadata}
+            with open(join(self.id, self.id+".json"), "w", encoding="utf-8") as f:
+                json.dump(save_dict, f, ensure_ascii=False, indent=4)
+        if get_rank() == 0:
+            self.markov_chain._save_run(self.markov_chain.start_time,
+                                        datetime.now().strftime(
+                                            "%d-%b-%Y (%H:%M:%S.%f)"),
+                                        step_evolved)
+
+            if log_energies:
+                self.markov_chain.energy_file.flush()
+
+    @classmethod
+    def load_run(cls, parallel_tempering_id, configuration_suggester,
+                 evaluator_class, evaluator_input_file):
+        with open(join(parallel_tempering_id, parallel_tempering_id + ".json"),
+                  encoding="utf-8") as json_file:
+            parallel_tempering_data = json.load(json_file)
+
+        temperatures = parallel_tempering_data["metadata"]["temperatures"]
+        exchange_after_step = int(parallel_tempering_data["metadata"]["exchange_after_step"])
+        steps_evolved = int(parallel_tempering_data["metadata"]["steps_evolved"])
+        new_parallel_temperer = ParallelTempering(
+            temperatures, evaluator_class, evaluator_input_file,
+            configuration_suggester, exchange_after_step=exchange_after_step,
+            load_markov_chains_from_file=True,
+            parallel_tempering_id=parallel_tempering_id)
+        new_parallel_temperer.steps_evolved = steps_evolved
+        return new_parallel_temperer
 
     def __check_acceptance(self, energy1, energy2, temperature1, temperature2,
                            rank1, rank2):
@@ -171,5 +232,3 @@ class ParallelTempering:
             return False
         else:
             return True
-
-

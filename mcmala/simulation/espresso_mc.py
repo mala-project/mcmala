@@ -113,7 +113,6 @@ class EspressoMC(QEpyCalculator):
             if "ATOMIC_SPECIES" in entry:
                 found_atomic_species = True
 
-
         input_data["outdir"] = temp_folder
         out_file_name = filename
         if temperature is not None:

@@ -2,7 +2,8 @@ import json
 import os
 import pickle
 
-class MarkovChainResults():
+
+class MarkovChainResults:
     """
     Represents the averaged results of one Markov chain.
 
@@ -16,9 +17,11 @@ class MarkovChainResults():
         calculate_observables_after_steps-th step.
 
     """
-    def __init__(self, markov_chain_id="mcmala_default", additonal_observables=[]):
+    def __init__(self, markov_chain_id="mcmala_default", additonal_observables=[],
+                 path_to_folder="."):
         # Observables.
         self.id = str(markov_chain_id)
+        self.path_to_folder = path_to_folder
         self.observables = {"total_energy": 0.0}
         for entry in additonal_observables:
             if entry == "rdf":
@@ -48,7 +51,7 @@ class MarkovChainResults():
         loaded_result = MarkovChainResults(markov_chain_id=markov_chain_id,
                                            additonal_observables=additonal_observables)
         if read_energy:
-            loaded_result.energies  = energies
+            loaded_result.energies = energies
 
         # We have to process the loaded data so that everything fits.
         loaded_result._process_loaded_obervables(markov_chain_data)
