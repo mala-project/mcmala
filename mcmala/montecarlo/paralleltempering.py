@@ -77,13 +77,13 @@ class ParallelTempering:
         starting_swap_at_zero = True
         while current_step < steps_to_evolve:
             # Run the Markov chain of this instance for
-            self.markov_chain._run(self.exchange_after_step, print_energies, log_trajectory,
+            self.markov_chain._run(current_step+self.exchange_after_step, print_energies, log_trajectory,
                                    log_energies, checkpoints_after_steps, save_run)
 
             # Wait till all Markov chains have finished.
             barrier(self.world_comm)
             if get_rank(self.world_comm) == 0:
-                printout("Doing the exchange.")
+                printout(current_step, "PARALLEL TEMPERING EXCHANGE START.")
             start_value = 0 if starting_swap_at_zero else 1
             starting_swap_at_zero = not starting_swap_at_zero
             if get_rank() == 0:
@@ -98,6 +98,7 @@ class ParallelTempering:
                             other_energy = np.empty([1], dtype=np.float64)
                             self.world_comm.Recv(other_energy, source=rank2, tag=rank1)
                             other_energy = other_energy[0]
+                            print(self.markov_chain.current_energy)
                             print("Rank {0} and {1} with temperatures {2} and {3} comparing energies"
                                   " {4} and {5}".format(rank1, rank2,
                                                         self.temperatures[instance1],
@@ -152,6 +153,10 @@ class ParallelTempering:
 
             barrier(self.world_comm)
             current_step += self.exchange_after_step
+            if get_rank(self.world_comm) == 0:
+                printout(current_step, "PARALLEL TEMPERING EXCHANGE END.")
+
+        self.markov_chain._wrap_up_run(log_energies, save_run, steps_to_evolve)
 
     def __check_acceptance(self, energy1, energy2, temperature1, temperature2,
                            rank1, rank2):
