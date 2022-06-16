@@ -3,7 +3,6 @@ from random import random
 import json
 import os
 import pickle
-
 from ase import Atoms
 from ase.units import kB
 from ase.io.trajectory import TrajectoryWriter, Trajectory
@@ -13,6 +12,8 @@ import numpy as np
 from mcmala import ConfigurationSuggester
 from mcmala.common.parallelizer import get_rank, printout, barrier, get_comm,\
                                        get_size, get_world_comm
+from mcmala.simulation.espresso_mc import EspressoMC
+from mcmala.simulation.atom_displacer import AtomDisplacer
 from .markovchainresults import MarkovChainResults
 from datetime import datetime
 
@@ -84,10 +85,14 @@ class MarkovChain(MarkovChainResults):
         self.energy_file = None
         self.trajectory_logger = None
 
+        # If we have an Espresso calculator, we need to updated some
+        # file paths.
+        if isinstance(evaluator, EspressoMC):
+            evaluator.working_directory = os.path.join(path_to_folder, self.id)
+            evaluator.input_file_name = self.id+"_espresso.pwi"
+
     @classmethod
-    def load_run(cls, markov_chain_id, evaluator: Calculator,
-                 configuration_suggester: ConfigurationSuggester,
-                 path_to_folder=None):
+    def load_run(cls, markov_chain_id, path_to_folder=None):
         markov_chain_id = str(markov_chain_id)
         last_configurations = Trajectory(os.path.join(path_to_folder,
                                                       markov_chain_id,
@@ -102,6 +107,28 @@ class MarkovChain(MarkovChainResults):
             markov_chain_data["metadata"]["calculate_observables_after_steps"]
         ensemble = markov_chain_data["metadata"]["ensemble"]
         equilibration_steps = markov_chain_data["metadata"]["equilibration_steps"]
+
+        # Load the evaluator from the saved files.
+        evaluator_type = markov_chain_data["metadata"]["evaluator"]
+        if evaluator_type == "EspressoMC":
+            input_file_name = markov_chain_id+"_espresso.pwi"
+        else:
+            raise Exception("Evaluator not implemented for loading.")
+        # This would be a bit overkill for now, since we only support
+        # loading from file for one evaluator (QE).
+        # May be useful later.
+        # module = importlib.import_module("mcmala")
+        # class_ = getattr(module, evaluator_type)
+        # evaluator = class_.from_input_file(path_to_folder, input_file_name)
+        evaluator = EspressoMC.from_input_file(os.path.join(path_to_folder,
+                                               markov_chain_id),
+                                               input_file_name)
+
+        # Load the configuration suggester from the saved files.
+        # Same as above - in the future we may want to do this dynamically.
+        # For now, there is really only one suggester.
+        configuration_suggester = AtomDisplacer.\
+            from_json(markov_chain_data["metadata"]["configuration_suggester"])
 
         # Create the object.
         loaded_result = MarkovChain(temperature, evaluator,
@@ -325,7 +352,7 @@ class MarkovChain(MarkovChainResults):
         metadata = {
             "id": self.id,
             "temperature": self.temperatureK,
-            "configuration_suggester": self.configuration_suggester.get_info(),
+            "configuration_suggester": self.configuration_suggester.to_json(),
             "configuration_type": type(self.configuration).__name__,
             "evaluator": type(self.evaluator).__name__,
             "start_time": start_time,

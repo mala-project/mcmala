@@ -1,12 +1,12 @@
-import os
-
 from ase.io import read, write
-import mcmala
 from mala.datahandling.data_repo import data_repo_path
-
+import mcmala
+from mcmala.montecarlo.paralleltempering import ParallelTempering
+import os
 
 data_path = os.path.join(os.path.join(data_repo_path, "Be2"), "training_data")
 
+mcmala.use_mpi()
 input_data = {
     "calculation": 'scf',
     "restart_mode": 'from_scratch',
@@ -28,26 +28,24 @@ input_data = {
     "nat": 2,
     "conv_thr": 0.02,
     "mixing_mode": 'plain',
-    "mixing_beta": 0.1
+    "mixing_beta": 0.1,
+    "verbosity": "low"
 }
 pseudopotentials = {"Be": "Be.pbe-n-rrkjus_psl.1.0.0.UPF"}
 kpts = (4, 4, 4)
-mcmala.use_mpi()
 
-# Initial configuration is one of the training snapshots.
+suggester = mcmala.AtomDisplacer(0.2)
 initial_configuration = read(os.path.join(data_path, "Be_snapshot1.out"),
                              format="espresso-out")
+write("espresso.pwi", initial_configuration, "espresso-in",
+      input_data=input_data, pseudopotentials=pseudopotentials, kpts=kpts)
 
-evaluator = mcmala.EspressoMC(initial_configuration, input_data,
-                              pseudopotentials, kpts)
+parallel_temp = ParallelTempering([300, 350, 400, 450], mcmala.EspressoMC,
+                                  "espresso.pwi", suggester, 5,
+                                  initial_configuration=initial_configuration,
+                                  ensemble="debug",
+                                  parallel_tempering_id="ex07")
 
-# Atomic displacer means one atom at a time is randomly displaced.
-suggester = mcmala.AtomDisplacer(0.2)
+parallel_temp.run(20, create_checkpoints=True, log_energies=True,
+                  log_trajectory=True)
 
-# We need to use the same temperature training data was calculated at.
-# Then we can run.
-simulation = mcmala.MarkovChain(298.0, evaluator, suggester,
-                                initial_configuration, ensemble="debug",
-                                markov_chain_id="ex06")
-simulation.run(20, print_energies=True, checkpoints_after_steps=2,
-               log_energies=True, log_trajectory=True)

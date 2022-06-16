@@ -1,13 +1,15 @@
-from mcmala.common.parallelizer import get_size, printout, get_rank, \
-    split_comm, get_world_comm, barrier
-from mcmala.montecarlo.markovchain import MarkovChain
-import numpy as np
-from ase.units import kB
-from random import random
+from datetime import datetime
+import json
 from os import makedirs
 from os.path import join, exists
-import json
-from datetime import datetime
+from random import random
+
+from ase.units import kB
+import numpy as np
+
+from mcmala.montecarlo.markovchain import MarkovChain
+from mcmala.common.parallelizer import get_size, printout, get_rank, \
+    split_comm, get_world_comm, barrier
 
 
 class ParallelTempering:

@@ -87,18 +87,23 @@ class AtomDisplacer(ConfigurationSuggester):
         new_configuration = self.collect_configuration(new_configuration)
         return new_configuration
 
-    def get_info(self):
+    def to_json(self):
         """
-        Access a dictionary with identifying information.
+        Convert object into JSON seriazable content.
 
         Returns
         -------
         info : dict
-
+            Info that can be saved to a dict.
         """
-        info = {}
-        info["name"] = type(self).__name__
-        info["maximum_displacement"] = self.maximum_displacement
-        info["enforce_pbc"] = self.enforce_pbc
+        info = {"name": type(self).__name__,
+                "maximum_displacement": self.maximum_displacement,
+                "enforce_pbc": self.enforce_pbc}
         return info
 
+    @classmethod
+    def from_json(cls, json_dict):
+        maximum_displacement = json_dict["maximum_displacement"]
+        enforce_pbc = json_dict["enforce_pbc"]
+        new_suggester = AtomDisplacer(maximum_displacement, enforce_pbc)
+        return new_suggester
