@@ -62,7 +62,7 @@ class ParallelTempering:
                 key = get_rank()-first_rank
 
         split_comm(self.instance_number, key)
-        print(get_rank(), get_rank(self.world_comm))
+        # print(get_rank(), get_rank(self.world_comm))
         self.temperature = temperatures[self.instance_number]
 
 
