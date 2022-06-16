@@ -150,7 +150,6 @@ class EspressoMC(QEpyCalculator):
 
     def create_input_file(self):
         self.input_data["outdir"] = join(self.working_directory, "temp")
-        print("I AM CREATING AN INPUT FILE WITH", self.temperature)
         if self.temperature is not None:
             self.input_data["degauss"] = \
                 round(kelvin_to_rydberg(self.temperature), 7)
