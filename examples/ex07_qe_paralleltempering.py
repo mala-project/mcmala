@@ -3,7 +3,6 @@ from mala.datahandling.data_repo import data_repo_path
 import mcmala
 from mcmala.montecarlo.paralleltempering import ParallelTempering
 import os
-
 data_path = os.path.join(os.path.join(data_repo_path, "Be2"), "training_data")
 
 mcmala.use_mpi()
@@ -37,11 +36,13 @@ kpts = (4, 4, 4)
 suggester = mcmala.AtomDisplacer(0.2)
 initial_configuration = read(os.path.join(data_path, "Be_snapshot1.out"),
                              format="espresso-out")
-write("espresso.pwi", initial_configuration, "espresso-in",
-      input_data=input_data, pseudopotentials=pseudopotentials, kpts=kpts)
 
-parallel_temp = ParallelTempering([300, 350, 400, 450], mcmala.EspressoMC,
-                                  "espresso.pwi", suggester, 5,
+evaluator = mcmala.EspressoMC(initial_configuration, input_data,
+                              pseudopotentials, kpts)
+
+parallel_temp = ParallelTempering([3000, 3500, 4000, 4500], 5,
+                                  evaluator=evaluator,
+                                  configuration_suggester=suggester,
                                   initial_configuration=initial_configuration,
                                   ensemble="debug",
                                   parallel_tempering_id="ex07")

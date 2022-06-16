@@ -87,12 +87,12 @@ class MarkovChain(MarkovChainResults):
 
         # If we have an Espresso calculator, we need to updated some
         # file paths.
-        if isinstance(evaluator, EspressoMC):
+        if isinstance(evaluator, EspressoMC) and not evaluator.is_initialized:
             evaluator.working_directory = os.path.join(path_to_folder, self.id)
             evaluator.input_file_name = self.id+"_espresso.pwi"
 
     @classmethod
-    def load_run(cls, markov_chain_id, path_to_folder=None):
+    def load_run(cls, markov_chain_id, path_to_folder="./"):
         markov_chain_id = str(markov_chain_id)
         last_configurations = Trajectory(os.path.join(path_to_folder,
                                                       markov_chain_id,
@@ -183,7 +183,7 @@ class MarkovChain(MarkovChainResults):
                 "Will not attempt to run for less steps then are "
                 "necessary for equilibration.")
         printout("Starting Markov chain " + self.id + ".")
-        start_time = datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
+        self.start_time = datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
 
         self.evaluator.calculate(atoms=self.configuration)
         # The first energy always will be for the first, initial configuration.

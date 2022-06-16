@@ -8,15 +8,19 @@ from ase.units import kB
 import numpy as np
 
 from mcmala.montecarlo.markovchain import MarkovChain
+from mcmala.simulation.espresso_mc import EspressoMC
+from mcmala.simulation.atom_displacer import AtomDisplacer
+
 from mcmala.common.parallelizer import get_size, printout, get_rank, \
-    split_comm, get_world_comm, barrier
+    split_comm, get_world_comm, barrier, get_comm
 
 
 class ParallelTempering:
 
     # TODO: Fix the handling of evaluator input
-    def __init__(self, temperatures, evaluator_class, evaluator_input_file,
-                 configuration_suggester,exchange_after_step,
+    def __init__(self, temperatures, exchange_after_step,
+                 evaluator: EspressoMC = None,
+                 configuration_suggester: AtomDisplacer = None,
                  initial_configuration=None, calculate_observables_after_steps=1,
                  parallel_tempering_id="mcmala_default", additonal_observables=[],
                  ensemble="nvt", equilibration_steps=0,
@@ -59,20 +63,16 @@ class ParallelTempering:
 
         split_comm(self.instance_number, key)
         print(get_rank(), get_rank(self.world_comm))
+        self.temperature = temperatures[self.instance_number]
+
+
         # Create the Markov chain. Each instance of the ParallelTempering
         # class will have one with the right (local) communicator.
-
-        # TODO: Find a smart way (maybe in the evaluator class itself)
-        # to handle the input files.
-        self.temperature = temperatures[self.instance_number]
-        evaluator = evaluator_class(inputfile=evaluator_input_file,
-                                    temperature=self.temperature,
-                                    temp_folder=join(parallel_tempering_id, str(self.temperature), "temp"))
         if load_markov_chains_from_file:
             self.markov_chain = MarkovChain.load_run(self.temperature,
-                                                     evaluator,
-                                                     configuration_suggester,
-                                                     path_to_folder=parallel_tempering_id)
+                                                     path_to_folder=
+                                                     parallel_tempering_id)
+            evaluator = self.markov_chain.evaluator
         else:
             self.markov_chain = MarkovChain(self.temperature,
                                             evaluator, configuration_suggester,
@@ -82,6 +82,15 @@ class ParallelTempering:
                                             additonal_observables=additonal_observables, ensemble=ensemble,
                                             equilibration_steps=equilibration_steps,
                                             path_to_folder=parallel_tempering_id)
+            evaluator.temperature = self.temperature
+
+        # After splitting we have to reassign the communicator.
+        # So far, there doesn't seem to be a problem in doing this AFTER
+        # the creation of the object. Should one surface, we have to create
+        # the evaluators here. It is nice not having to do that, because
+        # it allows for an elegant user interface, so for now I will keep it
+        # like this.
+        evaluator.comm = get_comm()
 
     def run(self, steps_to_evolve, print_energies=False,
             save_run=True, log_energies=False, log_trajectory=False,
@@ -103,7 +112,8 @@ class ParallelTempering:
             # Wait till all Markov chains have finished.
             barrier(self.world_comm)
             if get_rank(self.world_comm) == 0:
-                printout("PARALLEL TEMPERING EXCHANGE START (ITERATION #{0}).".format(current_step))
+                printout("PARALLEL TEMPERING EXCHANGE START (ITERATION #{0}).".
+                         format(current_step+self.exchange_after_step))
             start_value = 0 if starting_swap_at_zero else 1
             starting_swap_at_zero = not starting_swap_at_zero
             if get_rank() == 0:
@@ -204,8 +214,7 @@ class ParallelTempering:
                 self.markov_chain.energy_file.flush()
 
     @classmethod
-    def load_run(cls, parallel_tempering_id, configuration_suggester,
-                 evaluator_class, evaluator_input_file):
+    def load_run(cls, parallel_tempering_id):
         with open(join(parallel_tempering_id, parallel_tempering_id + ".json"),
                   encoding="utf-8") as json_file:
             parallel_tempering_data = json.load(json_file)
@@ -214,8 +223,7 @@ class ParallelTempering:
         exchange_after_step = int(parallel_tempering_data["metadata"]["exchange_after_step"])
         steps_evolved = int(parallel_tempering_data["metadata"]["steps_evolved"])
         new_parallel_temperer = ParallelTempering(
-            temperatures, evaluator_class, evaluator_input_file,
-            configuration_suggester, exchange_after_step=exchange_after_step,
+            temperatures, exchange_after_step,
             load_markov_chains_from_file=True,
             parallel_tempering_id=parallel_tempering_id)
         new_parallel_temperer.steps_evolved = steps_evolved
