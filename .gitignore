@@ -141,3 +141,4 @@ docs/_build
 docs/source/api
 docs/build_docs.sh
 *.traj
+*.pwi

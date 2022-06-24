@@ -30,15 +30,17 @@ class ConfigurationSuggester(ABC):
         pass
 
     @abstractmethod
-    def get_info(self):
+    def to_json(self):
         """
-        Access a dictionary with identifying information.
+        Convert object into JSON seriazable content.
 
         Returns
         -------
         info : dict
-
+            Info that can be saved to a dict.
         """
+        pass
+
     @staticmethod
     def collect_configuration(local_configuration):
         barrier()

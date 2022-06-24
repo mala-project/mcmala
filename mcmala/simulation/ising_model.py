@@ -93,6 +93,7 @@ class IsingGrid:
             raise Exception("No matplotlib found, cannot visualize Ising "
                             "grid.")
 
+
 class IsingModelEvaluator(Calculator):
     """
     Evaluator for the Ising model.
@@ -213,15 +214,15 @@ class IsingModelConfigurations(ConfigurationSuggester):
         new_configuration.lattice[x_to_flip, y_to_flip] *= -1
         return new_configuration
 
-    def get_info(self):
+    def to_json(self):
         """
-        Access a dictionary with identifying information.
+        Convert object into JSON seriazable content.
 
         Returns
         -------
         info : dict
+            Info that can be saved to a dict.
 
         """
-        info = {}
-        info["name"] = type(self).__name__
+        info = {"name": type(self).__name__}
         return info

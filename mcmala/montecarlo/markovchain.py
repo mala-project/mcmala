@@ -3,7 +3,6 @@ from random import random
 import json
 import os
 import pickle
-
 from ase import Atoms
 from ase.units import kB
 from ase.io.trajectory import TrajectoryWriter, Trajectory
@@ -12,7 +11,9 @@ import numpy as np
 
 from mcmala import ConfigurationSuggester
 from mcmala.common.parallelizer import get_rank, printout, barrier, get_comm,\
-                                       get_size
+                                       get_size, get_world_comm
+from mcmala.simulation.espresso_mc import EspressoMC
+from mcmala.simulation.atom_displacer import AtomDisplacer
 from .markovchainresults import MarkovChainResults
 from datetime import datetime
 
@@ -56,7 +57,7 @@ class MarkovChain(MarkovChainResults):
                  configuration_suggester: ConfigurationSuggester,
                  initial_configuration, calculate_observables_after_steps=1,
                  markov_chain_id="mcmala_default", additonal_observables=[],
-                 ensemble="nvt", equilibration_steps=0):
+                 ensemble="nvt", equilibration_steps=0, path_to_folder="."):
         self.temperatureK = temperatureK
         self.evaluator = evaluator
         self.configuration_suggester = configuration_suggester
@@ -67,17 +68,88 @@ class MarkovChain(MarkovChainResults):
         self.equilibration_steps = equilibration_steps
 
         super(MarkovChain, self).__init__(markov_chain_id=markov_chain_id,
-                                          additonal_observables=additonal_observables)
+                                          additonal_observables=additonal_observables,
+                                          path_to_folder=path_to_folder)
         self.is_continuation_run = False
 
         # Create folder for this Markov chain.
         if get_rank() == 0:
-            if not os.path.exists(self.id):
-                os.makedirs(self.id)
+            if not os.path.exists(os.path.join(path_to_folder, self.id)):
+                os.makedirs(os.path.join(path_to_folder, self.id))
+
+        # For running.
+        self.all_observables_counter = None
+        self.checkpoint_counter = None
+        self.start_time = None
+        self.current_energy = None
+        self.energy_file = None
+        self.trajectory_logger = None
+
+        # If we have an Espresso calculator, we need to updated some
+        # file paths.
+        if isinstance(evaluator, EspressoMC) and not evaluator.is_initialized:
+            evaluator.working_directory = os.path.join(path_to_folder, self.id)
+            evaluator.input_file_name = self.id+"_espresso.pwi"
+
+    @classmethod
+    def load_run(cls, markov_chain_id, path_to_folder="./"):
+        markov_chain_id = str(markov_chain_id)
+        last_configurations = Trajectory(os.path.join(path_to_folder,
+                                                      markov_chain_id,
+                                                      markov_chain_id + ".traj"))
+        # Load from the files.
+        markov_chain_data, additonal_observables, energies = \
+            cls._load_files(markov_chain_id, path_to_folder, True)
+
+        # Treat the observables.
+        temperature = markov_chain_data["metadata"]["temperature"]
+        calculate_observables_after_steps = \
+            markov_chain_data["metadata"]["calculate_observables_after_steps"]
+        ensemble = markov_chain_data["metadata"]["ensemble"]
+        equilibration_steps = markov_chain_data["metadata"]["equilibration_steps"]
+
+        # Load the evaluator from the saved files.
+        evaluator_type = markov_chain_data["metadata"]["evaluator"]
+        if evaluator_type == "EspressoMC":
+            input_file_name = markov_chain_id+"_espresso.pwi"
+        else:
+            raise Exception("Evaluator not implemented for loading.")
+        # This would be a bit overkill for now, since we only support
+        # loading from file for one evaluator (QE).
+        # May be useful later.
+        # module = importlib.import_module("mcmala")
+        # class_ = getattr(module, evaluator_type)
+        # evaluator = class_.from_input_file(path_to_folder, input_file_name)
+        evaluator = EspressoMC.from_input_file(os.path.join(path_to_folder,
+                                               markov_chain_id),
+                                               input_file_name)
+
+        # Load the configuration suggester from the saved files.
+        # Same as above - in the future we may want to do this dynamically.
+        # For now, there is really only one suggester.
+        configuration_suggester = AtomDisplacer.\
+            from_json(markov_chain_data["metadata"]["configuration_suggester"])
+
+        # Create the object.
+        loaded_result = MarkovChain(temperature, evaluator,
+                                    configuration_suggester,
+                                    last_configurations[-1],
+                                    calculate_observables_after_steps=calculate_observables_after_steps,
+                                    ensemble=ensemble,
+                                    equilibration_steps=equilibration_steps,
+                                    markov_chain_id=markov_chain_id,
+                                    additonal_observables=additonal_observables,
+                                    path_to_folder=path_to_folder)
+        loaded_result.energies = energies
+
+        # We have to process the loaded data so that everything fits.
+        loaded_result._process_loaded_obervables(markov_chain_data)
+        loaded_result.is_continuation_run = True
+        return loaded_result
 
     def run(self, steps_to_evolve, print_energies=False,
-                           save_run=True, log_energies=False, log_trajectory=False,
-                           checkpoints_after_steps=0):
+            save_run=True, log_energies=False, log_trajectory=False,
+            checkpoints_after_steps=0):
         """
         Run this Markov chain for a specified number of steps.
 
@@ -93,26 +165,38 @@ class MarkovChain(MarkovChainResults):
             Is True by default; if False, the run will not be saved (e.g.
             for examples and such).
 
-        """
+            """
+
+        # Open log files, perform first calculation, etc.
+        self._setup_run(steps_to_evolve, log_energies, log_trajectory)
+
+        # Actually run for a set amount of steps.
+        self._run(steps_to_evolve, print_energies, log_trajectory,
+                  log_energies, checkpoints_after_steps, save_run)
+
+        # Write final results.
+        self._wrap_up_run(log_energies, save_run, steps_to_evolve)
+
+    def _setup_run(self, steps_to_evolve, log_energies, log_trajectory):
         if steps_to_evolve <= self.equilibration_steps:
             raise Exception(
                 "Will not attempt to run for less steps then are "
                 "necessary for equilibration.")
         printout("Starting Markov chain " + self.id + ".")
-        start_time = datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
+        self.start_time = datetime.now().strftime("%d-%b-%Y (%H:%M:%S.%f)")
 
         self.evaluator.calculate(atoms=self.configuration)
         # The first energy always will be for the first, initial configuration.
         # Maybe there is a way around that, but for now, it seems the best
         # we can do for restart calculations is just reading from file.
         if self.is_continuation_run:
-            energy = self.energies[-1]
+            self.current_energy = self.energies[-1]
         else:
-            energy = self.evaluator.results["energy"]
-            self.observables["total_energy"] = energy
+            self.current_energy = self.evaluator.results["energy"]
+            self.observables["total_energy"] = self.current_energy
 
-        all_observables_counter = 0
-        checkpoint_counter = 0
+        self.all_observables_counter = 0
+        self.checkpoint_counter = 0
 
         # Set the logging modes.
         logging_mode = "w" if self.is_continuation_run is False else "a"
@@ -123,38 +207,43 @@ class MarkovChain(MarkovChainResults):
 
         if get_rank() == 0:
             if log_trajectory:
-                trajectory_logger = TrajectoryWriter(
-                    os.path.join(self.id, self.id + ".traj"),
-                    mode=logging_mode)
+                self.trajectory_logger = TrajectoryWriter(
+                    os.path.join(self.path_to_folder, self.id, self.id + ".traj"),
+                    mode=logging_mode, master=True)
             if log_energies:
-                energy_file = open(
-                    os.path.join(self.id, self.id + "_energies.log"),
+                self.energy_file = open(
+                    os.path.join(self.path_to_folder, self.id, self.id + "_energies.log"),
                     logging_mode)
                 if not self.is_continuation_run:
-                    energy_file.write("step\ttotal energy\n")
+                    self.energy_file.write("step\ttotal energy\n")
+        return
 
+    def _run(self, steps_to_evolve, print_energies, log_trajectory,
+             log_energies, checkpoints_after_steps, save_run):
         for step in range(self.steps_evolved, steps_to_evolve):
             new_configuration = self.configuration_suggester. \
                 suggest_new_configuration(self.configuration)
 
             self.evaluator.calculate(new_configuration)
             new_energy = self.evaluator.results["energy"]
-            deltaE = new_energy - energy
+            deltaE = new_energy - self.current_energy
 
             if self.__check_acceptance(deltaE):
-                energy = new_energy
+                self.current_energy = new_energy
                 self.configuration = new_configuration
 
                 # Logging.
                 if print_energies is True:
-                    printout("Accepted step, energy is now: ", energy)
+                    printout("Accepted step, energy is now: ",
+                             self.current_energy)
 
                 if get_rank() == 0:
                     if log_trajectory:
-                        trajectory_logger.write(new_configuration)
+                        self.trajectory_logger.write(new_configuration)
                     if log_energies:
-                        energy_file.write(
-                            "{0} \t {1:10.4f}\n".format(step, energy))
+                        self.energy_file.write(
+                            "{0} \t {1:10.4f}\n".format(step,
+                                                        self.current_energy))
 
                     # Calculate observables, given that were beyond the
                     # equilibration stage.
@@ -164,79 +253,46 @@ class MarkovChain(MarkovChainResults):
                         self.observables["total_energy"] = \
                             ((self.observables["total_energy"]
                               * (self.accepted_steps - 1)) +
-                             energy) / self.accepted_steps
+                             self.current_energy) / self.accepted_steps
 
                         # All the other observables are only calculated
                         # each calculate_observables_after_steps steps.
-                        all_observables_counter += 1
-                        if all_observables_counter == \
+                        self.all_observables_counter += 1
+                        if self.all_observables_counter == \
                                 self.calculate_observables_after_steps:
                             self.__get_additional_observables(
                                 self.accepted_steps)
-                            all_observables_counter = 0
+                            self.all_observables_counter = 0
 
                     # Create a checkpoint, if necessary.
                     if checkpoints_after_steps > 0:
-                        if checkpoint_counter >= checkpoints_after_steps:
+                        if self.checkpoint_counter >= checkpoints_after_steps:
                             if log_energies:
-                                energy_file.flush()
+                                self.energy_file.flush()
 
                             printout("Markov chain", self.id,
                                      "creating checkpoint.")
                             if save_run:
                                 # step + 1 because it's NUMBER of steps,
                                 # not step number.
-                                self.__save_run(start_time,
-                                                datetime.now().strftime(
+                                self._save_run(self.start_time,
+                                               datetime.now().strftime(
                                                     "%d-%b-%Y (%H:%M:%S.%f)"),
-                                                step + 1)
-                            checkpoint_counter = 0
-                checkpoint_counter += 1
+                                               step + 1)
+                            self.checkpoint_counter = 0
+                self.checkpoint_counter += 1
 
+    def _wrap_up_run(self, log_energies, save_run, steps_to_evolve):
         if get_rank() == 0:
             if log_energies:
-                energy_file.close()
+                self.energy_file.close()
 
             printout("Markov chain", self.id, "finished, saving results.")
             if save_run:
-                self.__save_run(start_time,
-                                datetime.now().strftime(
+                self._save_run(self.start_time,
+                               datetime.now().strftime(
                                     "%d-%b-%Y (%H:%M:%S.%f)"),
-                                steps_to_evolve)
-
-    @classmethod
-    def load_run(cls, markov_chain_id, evaluator: Calculator,
-                 configuration_suggester: ConfigurationSuggester,
-                 path_to_folder=None):
-        last_configurations = Trajectory(os.path.join(markov_chain_id,
-                                                      markov_chain_id + ".traj"))
-
-        # Load from the files.
-        markov_chain_data, additonal_observables, energies = cls._load_files(markov_chain_id,
-                                                                   path_to_folder,
-                                                                   True)
-        temperature = markov_chain_data["metadata"]["temperature"]
-        calculate_observables_after_steps = \
-            markov_chain_data["metadata"]["calculate_observables_after_steps"]
-        ensemble = markov_chain_data["metadata"]["ensemble"]
-        equilibration_steps = markov_chain_data["metadata"]["equilibration_steps"]
-
-        # Create the object.
-        loaded_result = MarkovChain(temperature, evaluator,
-                                    configuration_suggester,
-                                    last_configurations[-1],
-                                    calculate_observables_after_steps=calculate_observables_after_steps,
-                                    ensemble=ensemble,
-                                    equilibration_steps=equilibration_steps,
-                                    markov_chain_id=markov_chain_id,
-                                    additonal_observables=additonal_observables)
-        loaded_result.energies  = energies
-
-        # We have to process the loaded data so that everything fits.
-        loaded_result._process_loaded_obervables(markov_chain_data)
-        loaded_result.is_continuation_run = True
-        return loaded_result
-
+                               steps_to_evolve)
 
     def __get_additional_observables(self, accepted_steps):
         """Read additional observables from MALA."""
@@ -291,12 +347,12 @@ class MarkovChain(MarkovChainResults):
             if entry == "ion_ion_energy":
                 self.observables[entry] = self.evaluator.results[entry]
 
-    def __save_run(self, start_time, end_time, step_evolved):
+    def _save_run(self, start_time, end_time, step_evolved):
         # Construct meta data.
         metadata = {
             "id": self.id,
             "temperature": self.temperatureK,
-            "configuration_suggester": self.configuration_suggester.get_info(),
+            "configuration_suggester": self.configuration_suggester.to_json(),
             "configuration_type": type(self.configuration).__name__,
             "evaluator": type(self.evaluator).__name__,
             "start_time": start_time,
@@ -325,8 +381,8 @@ class MarkovChain(MarkovChainResults):
 
         # Now we can save everything to pickle.
         save_dict = {"metadata": metadata, "averaged_observables":
-                    cleaned_observables}
-        with open(os.path.join(self.id, self.id+".json"), "w",
+                     cleaned_observables}
+        with open(os.path.join(self.path_to_folder, self.id, self.id+".json"), "w",
                   encoding="utf-8") as f:
             json.dump(save_dict, f, ensure_ascii=False, indent=4)
 
