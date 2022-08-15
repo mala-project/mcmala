@@ -1,6 +1,8 @@
 """Evaluator, suggester, configurations for the Ising model."""
 from random import randrange
 from copy import deepcopy
+import json
+import os
 
 import numpy as np
 matplotlib_avail = True
@@ -177,6 +179,12 @@ class IsingModelEvaluator(Calculator):
         calculation need to be separate.
         """
         pass
+
+    def save_calculator(self, filepath):
+        save_dict = {"interaction_strength": self.interaction_strength}
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(save_dict, f, ensure_ascii=False, indent=4)
+
 
 
 class IsingModelConfigurations(ConfigurationSuggester):
