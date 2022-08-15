@@ -227,7 +227,7 @@ class MarkovChain(MarkovChainResults):
             self.evaluator.calculate(new_configuration)
             new_energy = self.evaluator.results["energy"]
             deltaE = new_energy - self.current_energy
-
+            self.steps_evolved = step
             if self.__check_acceptance(deltaE):
                 self.current_energy = new_energy
                 self.configuration = new_configuration
@@ -364,7 +364,6 @@ class MarkovChain(MarkovChainResults):
             "calculate_observables_after_steps": self.calculate_observables_after_steps,
             "number_of_ranks": get_size()
         }
-        self.steps_evolved = step_evolved
 
         # We clean the observables, because not all can be saved in the JSON
         # file; some arrays are large and have to be saved in pickle files.
