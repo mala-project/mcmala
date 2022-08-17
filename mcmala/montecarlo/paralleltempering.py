@@ -116,6 +116,7 @@ class ParallelTempering:
                          format(current_step+self.exchange_after_step))
             start_value = 0 if starting_swap_at_zero else 1
             starting_swap_at_zero = not starting_swap_at_zero
+            recalc_energy = False
             if get_rank() == 0:
                 for i in range(0, len(self.temperatures)):
                     instance1 = start_value+2*i
@@ -157,7 +158,10 @@ class ParallelTempering:
 
                                 # Set the values.
                                 self.markov_chain.configuration.set_positions(np.reshape(new_positions, (len(self.markov_chain.configuration), 3)))
-                                self.markov_chain.current_energy = other_energy
+
+                                # We have to recalc the current energy based on
+                                # the new positions.
+                                recalc_energy = True
 
                         if get_rank(self.world_comm) == rank2:
                             self.world_comm.Send(np.array(self.markov_chain.current_energy), dest=rank1, tag=rank1)
@@ -181,6 +185,14 @@ class ParallelTempering:
                                 self.markov_chain.configuration.set_positions(np.reshape(new_positions, (len(self.markov_chain.configuration), 3)))
                                 self.markov_chain.current_energy = other_energy
 
+                                # We have to recalc the current energy based on
+                                # the new positions.
+                                recalc_energy = True
+
+            barrier()
+            recalc_energy = get_comm().bcast(recalc_energy, root=0)
+            if recalc_energy:
+                self._recalc_energy()
             barrier(self.world_comm)
             if get_rank(self.world_comm) == 0:
                 printout("PARALLEL TEMPERING EXCHANGE END.")
@@ -191,6 +203,15 @@ class ParallelTempering:
                 self.__save_run(current_step, log_energies)
 
         self.markov_chain._wrap_up_run(log_energies, save_run, steps_to_evolve)
+
+    def _recalc_energy(self):
+        # After the exchange of the configurations, we have to calculate
+        # the new energy with the current electronic temperature.
+        self.markov_chain.evaluator.calculate(self.markov_chain.configuration)
+        self.markov_chain.current_energy = \
+            self.markov_chain.evaluator.results["energy"]
+
+
 
     def __save_run(self, step_evolved, log_energies):
         self.steps_evolved = step_evolved
