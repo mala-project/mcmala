@@ -207,11 +207,19 @@ class ParallelTempering:
     def _recalc_energy(self):
         # After the exchange of the configurations, we have to calculate
         # the new energy with the current electronic temperature.
+        # First though, we have to synchronize the positions.
+        # If no recalc is necessary, this operation won't have to be performed,
+        # since rank zero always broadcasts the updated positions in the
+        # configuration suggester class.
+
+        positions = get_comm().bcast(self.markov_chain.configuration.
+                                     get_positions(), root=0)
+        if get_rank() != 0:
+            self.markov_chain.configuration.set_positions(positions)
+
         self.markov_chain.evaluator.calculate(self.markov_chain.configuration)
         self.markov_chain.current_energy = \
             self.markov_chain.evaluator.results["energy"]
-
-
 
     def __save_run(self, step_evolved, log_energies):
         self.steps_evolved = step_evolved
