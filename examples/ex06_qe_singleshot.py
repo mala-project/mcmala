@@ -2,6 +2,7 @@ import os
 
 from ase.io import read, write
 import mcmala
+from mcmala.simulation.espresso_mc import EspressoMC
 from mala.datahandling.data_repo import data_repo_path
 
 
@@ -38,7 +39,7 @@ mcmala.use_mpi()
 initial_configuration = read(os.path.join(data_path, "Be_snapshot1.out"),
                              format="espresso-out")
 
-evaluator = mcmala.EspressoMC(initial_configuration, input_data,
+evaluator = EspressoMC(initial_configuration, input_data,
                               pseudopotentials, kpts)
 
 # Atomic displacer means one atom at a time is randomly displaced.

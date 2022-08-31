@@ -8,7 +8,6 @@ from ase.units import kB
 import numpy as np
 
 from mcmala.montecarlo.markovchain import MarkovChain
-from mcmala.simulation.espresso_mc import EspressoMC
 from mcmala.simulation.atom_displacer import AtomDisplacer
 
 from mcmala.common.parallelizer import get_size, printout, get_rank, \
@@ -19,7 +18,7 @@ class ParallelTempering:
 
     # TODO: Fix the handling of evaluator input
     def __init__(self, temperatures, exchange_after_step,
-                 evaluator: EspressoMC = None,
+                 evaluator = None,
                  configuration_suggester: AtomDisplacer = None,
                  initial_configuration=None, calculate_observables_after_steps=1,
                  parallel_tempering_id="mcmala_default", additonal_observables=[],

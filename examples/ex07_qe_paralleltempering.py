@@ -1,6 +1,7 @@
 from ase.io import read, write
 from mala.datahandling.data_repo import data_repo_path
 import mcmala
+from mcmala.simulation.espresso_mc import EspressoMC
 from mcmala.montecarlo.paralleltempering import ParallelTempering
 import os
 data_path = os.path.join(os.path.join(data_repo_path, "Be2"), "training_data")
@@ -37,7 +38,7 @@ suggester = mcmala.AtomDisplacer(0.2)
 initial_configuration = read(os.path.join(data_path, "Be_snapshot1.out"),
                              format="espresso-out")
 
-evaluator = mcmala.EspressoMC(initial_configuration, input_data,
+evaluator = EspressoMC(initial_configuration, input_data,
                               pseudopotentials, kpts)
 
 parallel_temp = ParallelTempering([3000, 3500, 4000, 4500], 5,

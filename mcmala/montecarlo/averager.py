@@ -15,7 +15,7 @@ class Averager:
         self.markov_chain_results = []
         self.energies = {}
 
-    def add_markov_chain(self, markov_chain_id, path_to_folder=None):
+    def add_markov_chain(self, markov_chain_id, path_to_folder="./"):
         """
         Add a Markov chain to the analysis.
 

@@ -148,6 +148,22 @@ class EspressoMC(QEpyCalculator):
         if is_mala_available and self.mala_params is not None:
             self.mala_params.save(filename)
 
+    def update_paths(self, working_directory, markov_chain_id):
+        """
+        Update the working path(s) used by this calculator.
+
+        Parameters
+        ----------
+        working_directory : string
+            Working directory of the Markov chain.
+
+        markov_chain_id : string
+            ID under which the Markov chain that calls this calculator
+            operates.
+        """
+        self.working_directory = join(working_directory, markov_chain_id)
+        self.input_file_name = markov_chain_id + "_espresso.pwi"
+
     def create_input_file(self):
         self.input_data["outdir"] = join(self.working_directory, "temp")
         if self.temperature is not None:

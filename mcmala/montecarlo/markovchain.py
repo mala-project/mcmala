@@ -12,7 +12,6 @@ import numpy as np
 from mcmala import ConfigurationSuggester
 from mcmala.common.parallelizer import get_rank, printout, barrier, get_comm,\
                                        get_size, get_world_comm
-from mcmala.simulation.espresso_mc import EspressoMC
 from mcmala.simulation.atom_displacer import AtomDisplacer
 from .markovchainresults import MarkovChainResults
 from datetime import datetime
@@ -87,12 +86,14 @@ class MarkovChain(MarkovChainResults):
 
         # If we have an Espresso calculator, we need to updated some
         # file paths.
-        if isinstance(evaluator, EspressoMC) and not evaluator.is_initialized:
-            evaluator.working_directory = os.path.join(path_to_folder, self.id)
-            evaluator.input_file_name = self.id+"_espresso.pwi"
+        if hasattr(evaluator, "update_paths"):
+            evaluator.update_paths(path_to_folder, markov_chain_id)
 
     @classmethod
     def load_run(cls, markov_chain_id, path_to_folder="./"):
+        # Importing here because of compatibility issues with MALA.
+        from mcmala.simulation.espresso_mc import EspressoMC
+
         markov_chain_id = str(markov_chain_id)
         last_configurations = Trajectory(os.path.join(path_to_folder,
                                                       markov_chain_id,
@@ -143,7 +144,9 @@ class MarkovChain(MarkovChainResults):
         loaded_result.energies = energies
 
         # We have to process the loaded data so that everything fits.
-        loaded_result._process_loaded_obervables(markov_chain_data)
+        loaded_result._process_loaded_obervables(markov_chain_data,
+                                                 path_to_folder,
+                                                 markov_chain_id)
         loaded_result.is_continuation_run = True
         return loaded_result
 

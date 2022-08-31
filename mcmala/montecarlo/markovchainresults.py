@@ -42,27 +42,27 @@ class MarkovChainResults:
         self.accepted_steps = 0
 
     @classmethod
-    def load_run(cls, markov_chain_id, path_to_folder=None, read_energy=False):
+    def load_run(cls, markov_chain_id, path_to_folder="./", read_energy=False):
         # Load from the files.
-        markov_chain_data, additonal_observables, energies = cls._load_files(markov_chain_id,
-                                                                   path_to_folder,
-                                                                   read_energy)
+        markov_chain_data, additonal_observables, \
+                energies = cls._load_files(markov_chain_id, path_to_folder,
+                                           read_energy)
         # Create the object.
         loaded_result = MarkovChainResults(markov_chain_id=markov_chain_id,
-                                           additonal_observables=additonal_observables)
+                                           additonal_observables=
+                                           additonal_observables)
         if read_energy:
             loaded_result.energies = energies
 
         # We have to process the loaded data so that everything fits.
-        loaded_result._process_loaded_obervables(markov_chain_data)
+        loaded_result._process_loaded_obervables(markov_chain_data,
+                                                 path_to_folder,
+                                                 markov_chain_id)
         return loaded_result
 
     @staticmethod
     def _load_files(markov_chain_id, path_to_folder, read_energy):
-        if path_to_folder is None:
-            folder_to_load = markov_chain_id
-        else:
-            folder_to_load = os.path.join(path_to_folder, markov_chain_id)
+        folder_to_load = os.path.join(path_to_folder, markov_chain_id)
 
         # Load the JSON file of the run.
         with open(os.path.join(folder_to_load, markov_chain_id + ".json"),
@@ -86,7 +86,10 @@ class MarkovChainResults:
 
         return markov_chain_data, additonal_observables,energies
 
-    def _process_loaded_obervables(self, markov_chain_data):
+    def _process_loaded_obervables(self, markov_chain_data,
+                                   path_to_folder,
+                                   markov_chain_id):
+        folder_to_load = os.path.join(path_to_folder, markov_chain_id)
         self.steps_evolved = markov_chain_data["metadata"][
             "steps_evolved"]
         self.accepted_steps = markov_chain_data["metadata"][

@@ -96,7 +96,7 @@ def run_mc(network, params, input_scaler, output_scaler):
     plt.show()
 
 
-params = mala.Parameters.load_from_file("ex04_params.pkl")
+params = mala.Parameters.load_from_file("ex04_params.json")
 network = mala.Network.load_from_file(params, "ex04_network.pkl")
 input_scaler = mala.DataScaler.load_from_file("ex04_iscaler.pkl")
 output_scaler = mala.DataScaler.load_from_file("ex04_oscaler.pkl")
