@@ -57,10 +57,12 @@ def initial_training():
     # Add a snapshot we want to use in to the list.
     data_handler.add_snapshot("Be_snapshot1.in.npy", data_path,
                               "Be_snapshot1.out.npy", data_path,
-                              add_snapshot_as="tr")
+                              add_snapshot_as="tr",
+                              output_units="1/(eV*Bohr^3)")
     data_handler.add_snapshot("Be_snapshot2.in.npy", data_path,
                               "Be_snapshot2.out.npy", data_path,
-                              add_snapshot_as="va")
+                              add_snapshot_as="va",
+                              output_units="1/(eV*Bohr^3)")
     data_handler.prepare_data()
     printout("Read data: DONE.")
 
@@ -112,6 +114,7 @@ def run_mc(network, params, input_scaler, output_scaler):
     params.descriptors.descriptor_type = "SNAP"
     params.descriptors.twojmax = 10
     params.descriptors.rcutfac = 4.67637
+    params.descriptors.snap_switchflag = 0
     params.targets.pseudopotential_path = os.path.join(data_repo_path, "Be2")
 
     # Create data handler and with it calculator.
