@@ -13,6 +13,7 @@ from mcmala import ConfigurationSuggester
 from mcmala.common.parallelizer import get_rank, printout, barrier, get_comm,\
                                        get_size, get_world_comm
 from mcmala.simulation.atom_displacer import AtomDisplacer
+from mcmala.simulation import is_qepy_available
 from .markovchainresults import MarkovChainResults
 from datetime import datetime
 
@@ -91,8 +92,8 @@ class MarkovChain(MarkovChainResults):
 
     @classmethod
     def load_run(cls, markov_chain_id, path_to_folder="./"):
-        # Importing here because of compatibility issues with MALA.
-        from mcmala.simulation.espresso_mc import EspressoMC
+        if is_qepy_available:
+            from mcmala.simulation.espresso_mc import EspressoMC
 
         markov_chain_id = str(markov_chain_id)
         last_configurations = Trajectory(os.path.join(path_to_folder,
@@ -112,7 +113,10 @@ class MarkovChain(MarkovChainResults):
         # Load the evaluator from the saved files.
         evaluator_type = markov_chain_data["metadata"]["evaluator"]
         if evaluator_type == "EspressoMC":
-            input_file_name = markov_chain_id+"_espresso.pwi"
+            if is_qepy_available:
+                input_file_name = markov_chain_id+"_espresso.pwi"
+            else:
+                raise Exception("QEPy not available on this system.")
         else:
             raise Exception("Evaluator not implemented for loading.")
         # This would be a bit overkill for now, since we only support
