@@ -4,16 +4,14 @@ from mcmala.common.parallelizer import get_comm, get_rank, printout
 from mcmala.common.converters import kelvin_to_rydberg
 from os.path import join
 
-is_mala_available = True
-try:
+from mcmala.simulation.available_frameworks import is_qepy_available, \
+    is_mala_available
+
+if is_mala_available:
     import mala
-except ModuleNotFoundError:
-    is_mala_available = False
-is_qepy_available = True
-try:
+
+if is_qepy_available:
     from qepy.calculator import QEpyCalculator
-except ModuleNotFoundError:
-    is_qepy_available = False
 
 if is_qepy_available:
     class EspressoMC(QEpyCalculator):
@@ -150,7 +148,7 @@ if is_qepy_available:
 
             """
             if is_mala_available and self.mala_params is not None:
-                self.mala_params.save(filename)
+                self.mala_params.save(filename+".params.json")
 
         def update_paths(self, working_directory, markov_chain_id):
             """

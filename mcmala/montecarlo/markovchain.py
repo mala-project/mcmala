@@ -1,8 +1,12 @@
 """Markov chain for Monte Carlo simulation."""
-from random import random
+from datetime import datetime
+import importlib
 import json
 import os
 import pickle
+from random import random
+
+import mala
 from ase import Atoms
 from ase.units import kB
 from ase.io.trajectory import TrajectoryWriter, Trajectory
@@ -13,9 +17,8 @@ from mcmala import ConfigurationSuggester
 from mcmala.common.parallelizer import get_rank, printout, barrier, get_comm,\
                                        get_size, get_world_comm
 from mcmala.simulation.atom_displacer import AtomDisplacer
-from mcmala.simulation import is_qepy_available
+from mcmala.simulation import is_qepy_available, is_mala_available
 from .markovchainresults import MarkovChainResults
-from datetime import datetime
 
 
 class MarkovChain(MarkovChainResults):
@@ -92,9 +95,6 @@ class MarkovChain(MarkovChainResults):
 
     @classmethod
     def load_run(cls, markov_chain_id, path_to_folder="./"):
-        if is_qepy_available:
-            from mcmala.simulation.espresso_mc import EspressoMC
-
         markov_chain_id = str(markov_chain_id)
         last_configurations = Trajectory(os.path.join(path_to_folder,
                                                       markov_chain_id,
@@ -114,20 +114,40 @@ class MarkovChain(MarkovChainResults):
         evaluator_type = markov_chain_data["metadata"]["evaluator"]
         if evaluator_type == "EspressoMC":
             if is_qepy_available:
+                from mcmala.simulation.espresso_mc import EspressoMC
                 input_file_name = markov_chain_id+"_espresso.pwi"
+                evaluator = EspressoMC.\
+                    from_input_file(os.path.join(path_to_folder,
+                                                 markov_chain_id),
+                                    input_file_name)
+            else:
+                raise Exception("QEPy not available on this system.")
+        elif evaluator_type == "MALA":
+            if is_mala_available:
+                import mala
+                params = mala.Parameters.load_from_file(
+                    os.path.join(path_to_folder, markov_chain_id,
+                                 markov_chain_id+".params.json"))
+                network = mala.Network.\
+                    load_from_file(params, os.path.join(path_to_folder, markov_chain_id,
+                                   markov_chain_id+".network.pth"))
+                iscaler = mala.DataScaler.\
+                    load_from_file(os.path.join(path_to_folder, markov_chain_id,
+                                   markov_chain_id+".iscaler.pkl"))
+                oscaler = mala.DataScaler.\
+                    load_from_file(os.path.join(path_to_folder, markov_chain_id,
+                                   markov_chain_id+".oscaler.pkl"))
+                data_handler = mala.\
+                    DataHandler(params, input_data_scaler=iscaler,
+                                output_data_scaler=oscaler)
+                reference_path = os.path.join(path_to_folder, markov_chain_id,
+                                                     markov_chain_id+".reference.json")
+                evaluator = mala.MALA(params, network, data_handler,
+                                      ["json", reference_path])
             else:
                 raise Exception("QEPy not available on this system.")
         else:
             raise Exception("Evaluator not implemented for loading.")
-        # This would be a bit overkill for now, since we only support
-        # loading from file for one evaluator (QE).
-        # May be useful later.
-        # module = importlib.import_module("mcmala")
-        # class_ = getattr(module, evaluator_type)
-        # evaluator = class_.from_input_file(path_to_folder, input_file_name)
-        evaluator = EspressoMC.from_input_file(os.path.join(path_to_folder,
-                                               markov_chain_id),
-                                               input_file_name)
 
         # Load the configuration suggester from the saved files.
         # Same as above - in the future we may want to do this dynamically.
@@ -393,8 +413,7 @@ class MarkovChain(MarkovChainResults):
             json.dump(save_dict, f, ensure_ascii=False, indent=4)
 
         # Save the MALA based data of the observables.
-        self.evaluator.save_calculator(os.path.join(self.id,
-                                                    self.id+"_evaluator.json"))
+        self.evaluator.save_calculator(os.path.join(self.id, self.id))
 
     def __check_acceptance(self, deltaE):
         return_value = False

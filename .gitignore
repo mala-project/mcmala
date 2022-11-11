@@ -142,3 +142,6 @@ docs/source/api
 docs/build_docs.sh
 *.traj
 *.pwi
+
+*.tmp
+*.pth

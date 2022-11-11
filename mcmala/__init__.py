@@ -11,6 +11,6 @@ from .montecarlo import MarkovChain, Averager, MarkovChainResults, \
     ParallelTempering
 from .common import printout, use_mpi, get_rank, get_size, get_comm, barrier
 
-from .simulation import is_qepy_available
+from .simulation import is_qepy_available, is_mala_available
 if is_qepy_available:
     from .simulation import EspressoMC
