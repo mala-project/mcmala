@@ -100,8 +100,8 @@ class MarkovChain(MarkovChainResults):
                                                       markov_chain_id,
                                                       markov_chain_id + ".traj"))
         # Load from the files.
-        markov_chain_data, additonal_observables, energies = \
-            cls._load_files(markov_chain_id, path_to_folder, True)
+        markov_chain_data, additonal_observables = \
+            cls._load_files(markov_chain_id, path_to_folder)
 
         # Treat the observables.
         temperature = markov_chain_data["metadata"]["temperature"]
@@ -165,7 +165,6 @@ class MarkovChain(MarkovChainResults):
                                     markov_chain_id=markov_chain_id,
                                     additonal_observables=additonal_observables,
                                     path_to_folder=path_to_folder)
-        loaded_result.energies = energies
 
         # We have to process the loaded data so that everything fits.
         loaded_result._process_loaded_obervables(markov_chain_data,
@@ -174,9 +173,7 @@ class MarkovChain(MarkovChainResults):
         loaded_result.is_continuation_run = True
         return loaded_result
 
-    def run(self, steps_to_evolve, print_energies=False,
-            save_run=True, log_energies=False, log_trajectory=False,
-            checkpoints_after_steps=0):
+    def run(self, steps_to_evolve, checkpoints_after_steps=0):
         """
         Run this Markov chain for a specified number of steps.
 
@@ -184,27 +181,18 @@ class MarkovChain(MarkovChainResults):
         ----------
         steps_to_evolve : int
             Number of steps to run the simulation for.
-
-        print_energies : bool
-            If True, the energies are printed at each step of the simulation.
-
-        save_run : bool
-            Is True by default; if False, the run will not be saved (e.g.
-            for examples and such).
-
-            """
+        """
 
         # Open log files, perform first calculation, etc.
-        self._setup_run(steps_to_evolve, log_energies, log_trajectory)
+        self._setup_run(steps_to_evolve)
 
         # Actually run for a set amount of steps.
-        self._run(steps_to_evolve, print_energies, log_trajectory,
-                  log_energies, checkpoints_after_steps, save_run)
+        self._run(steps_to_evolve, checkpoints_after_steps)
 
         # Write final results.
-        self._wrap_up_run(log_energies, save_run, steps_to_evolve)
+        self._wrap_up_run(steps_to_evolve)
 
-    def _setup_run(self, steps_to_evolve, log_energies, log_trajectory):
+    def _setup_run(self, steps_to_evolve):
         if steps_to_evolve <= self.equilibration_steps:
             raise Exception(
                 "Will not attempt to run for less steps then are "
@@ -217,7 +205,7 @@ class MarkovChain(MarkovChainResults):
         # Maybe there is a way around that, but for now, it seems the best
         # we can do for restart calculations is just reading from file.
         if self.is_continuation_run:
-            self.current_energy = self.energies[-1]
+            self.current_energy = self.observables["total_energy"][-1]
         else:
             self.current_energy = self.evaluator.results["energy"]
             self.observables["total_energy"].append(self.current_energy)
@@ -228,25 +216,14 @@ class MarkovChain(MarkovChainResults):
         # Set the logging modes.
         logging_mode = "w" if self.is_continuation_run is False else "a"
 
-        # Prepare logging, if necessary.
-        if isinstance(self.configuration, Atoms) is False:
-            log_trajectory = False
-
         if get_rank() == 0:
-            if log_trajectory:
+            if isinstance(self.configuration, Atoms) is True:
                 self.trajectory_logger = TrajectoryWriter(
                     os.path.join(self.path_to_folder, self.id, self.id + ".traj"),
                     mode=logging_mode, master=True)
-            if log_energies:
-                self.energy_file = open(
-                    os.path.join(self.path_to_folder, self.id, self.id + "_energies.log"),
-                    logging_mode)
-                if not self.is_continuation_run:
-                    self.energy_file.write("step\ttotal energy\n")
         return
 
-    def _run(self, steps_to_evolve, print_energies, log_trajectory,
-             log_energies, checkpoints_after_steps, save_run):
+    def _run(self, steps_to_evolve, checkpoints_after_steps):
         for step in range(self.steps_evolved, steps_to_evolve):
             new_configuration = self.configuration_suggester. \
                 suggest_new_configuration(self.configuration)
@@ -264,17 +241,12 @@ class MarkovChain(MarkovChainResults):
                 self.configuration = new_configuration
 
                 # Logging.
-                if print_energies is True:
-                    printout("Accepted step, energy is now: ",
-                             self.current_energy)
+                printout("Accepted step, energy is now: ",
+                         self.current_energy)
 
                 if get_rank() == 0:
-                    if log_trajectory:
+                    if isinstance(self.configuration, Atoms) is True:
                         self.trajectory_logger.write(new_configuration)
-                    if log_energies:
-                        self.energy_file.write(
-                            "{0} \t {1:10.4f}\n".format(step,
-                                                        self.current_energy))
 
                     # Calculate observables, given that were beyond the
                     # equilibration stage.
@@ -295,32 +267,25 @@ class MarkovChain(MarkovChainResults):
                     # Create a checkpoint, if necessary.
                     if checkpoints_after_steps > 0:
                         if self.checkpoint_counter >= checkpoints_after_steps:
-                            if log_energies:
-                                self.energy_file.flush()
 
                             printout("Markov chain", self.id,
                                      "creating checkpoint.")
-                            if save_run:
-                                # step + 1 because it's NUMBER of steps,
-                                # not step number.
-                                self._save_run(self.start_time,
-                                               datetime.now().strftime(
-                                                    "%d-%b-%Y (%H:%M:%S.%f)"),
-                                               step + 1)
+                            # step + 1 because it's NUMBER of steps,
+                            # not step number.
+                            self._save_run(self.start_time,
+                                           datetime.now().strftime(
+                                                "%d-%b-%Y (%H:%M:%S.%f)"),
+                                           step + 1)
                             self.checkpoint_counter = 0
                 self.checkpoint_counter += 1
 
-    def _wrap_up_run(self, log_energies, save_run, steps_to_evolve):
+    def _wrap_up_run(self, steps_to_evolve):
         if get_rank() == 0:
-            if log_energies:
-                self.energy_file.close()
-
             printout("Markov chain", self.id, "finished, saving results.")
-            if save_run:
-                self._save_run(self.start_time,
-                               datetime.now().strftime(
-                                    "%d-%b-%Y (%H:%M:%S.%f)"),
-                               steps_to_evolve)
+            self._save_run(self.start_time,
+                           datetime.now().strftime(
+                                "%d-%b-%Y (%H:%M:%S.%f)"),
+                           steps_to_evolve)
 
     def __get_additional_observables(self):
         """Read additional observables from MALA."""

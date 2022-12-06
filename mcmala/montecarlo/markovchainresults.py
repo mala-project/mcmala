@@ -2,6 +2,7 @@ import json
 import os
 import pickle
 
+import numpy as np
 
 class MarkovChainResults:
     """
@@ -40,24 +41,19 @@ class MarkovChainResults:
             else:
                 self.observables[entry] = []
 
-        # All the accepted energies, for plotting and such.
-        self.energies = None
         self.steps_evolved = 0
         self.accepted_steps = 0
 
     @classmethod
-    def load_run(cls, markov_chain_id, path_to_folder="./", read_energy=False):
+    def load_run(cls, markov_chain_id, path_to_folder="./"):
         # Load from the files.
-        markov_chain_data, additonal_observables, \
-                energies = cls._load_files(markov_chain_id, path_to_folder,
-                                           read_energy)
+        markov_chain_data, additonal_observables = \
+            cls._load_files(markov_chain_id, path_to_folder)
+
         # Create the object.
         loaded_result = MarkovChainResults(markov_chain_id=markov_chain_id,
                                            additonal_observables=
                                            additonal_observables)
-        if read_energy:
-            loaded_result.energies = energies
-
         # We have to process the loaded data so that everything fits.
         loaded_result._process_loaded_obervables(markov_chain_data,
                                                  path_to_folder,
@@ -65,7 +61,7 @@ class MarkovChainResults:
         return loaded_result
 
     @staticmethod
-    def _load_files(markov_chain_id, path_to_folder, read_energy):
+    def _load_files(markov_chain_id, path_to_folder):
         folder_to_load = os.path.join(path_to_folder, markov_chain_id)
 
         # Load the JSON file of the run.
@@ -77,18 +73,7 @@ class MarkovChainResults:
         additonal_observables = list(markov_chain_data["observables"].keys())
         additonal_observables.remove("total_energy")
 
-        # Load energy, if requested.
-        energies = None
-        if read_energy:
-            energies = []
-            energy_file = open(
-                os.path.join(folder_to_load, markov_chain_id + "_energies.log"), "r")
-            lines = energy_file.readlines()
-            for line in lines:
-                if "step" not in line:
-                    energies.append(float(line.split()[1]))
-
-        return markov_chain_data, additonal_observables,energies
+        return markov_chain_data, additonal_observables
 
     def _process_loaded_obervables(self, markov_chain_data,
                                    path_to_folder,
@@ -99,14 +84,10 @@ class MarkovChainResults:
         self.accepted_steps = markov_chain_data["metadata"][
             "accepted_steps"]
         for entry in markov_chain_data["observables"].keys():
-            if entry == "ion_ion_energy" or entry == "total_energy":
-                self.observables[entry] = markov_chain_data["observables"][entry]
-
-            if entry == "rdf" or entry == "tpcf" or entry == "static_structure_factor":
-                filename = os.path.join(folder_to_load,
-                                        markov_chain_data["observables"][entry])
-                with open(filename, 'rb') as handle:
-                    self.observables[entry] = pickle.load(handle)
+            # The json file contains the paths to the observable files.
+            filename = os.path.join(folder_to_load,
+                                    markov_chain_data["observables"][entry])
+            self.observables[entry] = list(np.load(filename))
 
     # Properties (Observables)
     @property
@@ -117,29 +98,29 @@ class MarkovChainResults:
     @property
     def rdf(self):
         """Radial distribution function of system"""
-        return self.observables["rdf"]["rdf"]
+        return self.observables["rdf"]
 
     @property
     def rdf_grid(self):
-        return self.observables["rdf"]["distances"]
+        return self.observables["rdf_distances"]
 
     @property
     def tpcf(self):
         """Three particle correlation function of system."""
-        return self.observables["tpcf"]["tpcf"]
+        return self.observables["tpcf"]
 
     @property
     def tpcf_grid(self):
-        return self.observables["tpcf"]["radii"]
+        return self.observables["tpcf_radii"]
 
     @property
     def static_structure_factor(self):
         """Static structure factor of system."""
-        return self.observables["static_structure_factor"]["static_structure_factor"]
+        return self.observables["static_structure_factor"]
 
     @property
     def static_structure_factor_grid(self):
-        return self.observables["static_structure_factor"]["kpoints"]
+        return self.observables["static_structure_factor_kpoints"]
 
     @property
     def ion_ion_energy(self):
