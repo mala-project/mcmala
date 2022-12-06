@@ -113,11 +113,15 @@ if is_qepy_available:
             if not self.is_initialized:
                 self.create_input_file()
             self.results["energy"] = self.get_potential_energy(atoms=atoms)
+            if "stress" in properties:
+                self.results["stress"] = self.get_stress(atoms)
 
         def calculate_properties(self, atoms, properties):
-            if not is_mala_available or self.observables_calculator is None:
-                raise Exception("Cannot calculate additional MC observables "
-                                "without MALA present.")
+            if "rdf" in properties or "tcpf" in properties or \
+                "static_structure_factor" in properties:
+                if not is_mala_available or self.observables_calculator is None:
+                    raise Exception("Cannot calculate additional MC observables "
+                                    "without MALA present.")
 
             if "rdf" in properties:
                 self.results["rdf"] = self.observables_calculator.\

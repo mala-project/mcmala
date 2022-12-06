@@ -220,7 +220,7 @@ class MarkovChain(MarkovChainResults):
             self.current_energy = self.energies[-1]
         else:
             self.current_energy = self.evaluator.results["energy"]
-            self.observables["total_energy"] = self.current_energy
+            self.observables["total_energy"].append(self.current_energy)
 
         self.all_observables_counter = 0
         self.checkpoint_counter = 0
@@ -251,7 +251,11 @@ class MarkovChain(MarkovChainResults):
             new_configuration = self.configuration_suggester. \
                 suggest_new_configuration(self.configuration)
 
-            self.evaluator.calculate(new_configuration)
+            # We are giving the properties here because certain properties
+            # have to be calculated during the energy evaluation (e.g.
+            # the stress tensor)
+            self.evaluator.calculate(new_configuration,
+                                     properties=list(self.observables.keys()))
             new_energy = self.evaluator.results["energy"]
             deltaE = new_energy - self.current_energy
             self.steps_evolved = step
@@ -277,18 +281,15 @@ class MarkovChain(MarkovChainResults):
                     if step >= self.equilibration_steps:
                         # The energy is always calculated.
                         self.accepted_steps += 1
-                        self.observables["total_energy"] = \
-                            ((self.observables["total_energy"]
-                              * (self.accepted_steps - 1)) +
-                             self.current_energy) / self.accepted_steps
+                        self.observables["total_energy"].append(self.
+                                                                current_energy)
 
                         # All the other observables are only calculated
                         # each calculate_observables_after_steps steps.
                         self.all_observables_counter += 1
                         if self.all_observables_counter == \
                                 self.calculate_observables_after_steps:
-                            self.__get_additional_observables(
-                                self.accepted_steps)
+                            self.__get_additional_observables()
                             self.all_observables_counter = 0
 
                     # Create a checkpoint, if necessary.
@@ -321,7 +322,7 @@ class MarkovChain(MarkovChainResults):
                                     "%d-%b-%Y (%H:%M:%S.%f)"),
                                steps_to_evolve)
 
-    def __get_additional_observables(self, accepted_steps):
+    def __get_additional_observables(self):
         """Read additional observables from MALA."""
 
         # The total energy is always calculated. If it is the ONLY thing
@@ -329,50 +330,31 @@ class MarkovChain(MarkovChainResults):
         if len(self.observables) == 1:
             return
 
-        self.evaluator.calculate_properties(
-            self.configuration,
-            properties=list(self.
-                            observables.
-                            keys()))
+        # Calculate additional properties using e.g. a MALA calculator.
+        self.evaluator.calculate_properties(self.configuration,
+                                            properties=list(self.observables.keys()))
+
+        # Save the observables.
         for entry in self.observables.keys():
             if entry == "rdf":
-                if self.observables[entry]["rdf"] is None:
-                    self.observables[entry]["rdf"] = \
-                        self.evaluator.results[entry][0]
-                else:
-                    self.observables[entry]["rdf"] = \
-                        ((self.observables[entry]["rdf"]
-                          * (accepted_steps - 1)) +
-                         self.evaluator.results[entry][0]) / \
-                        accepted_steps
-                self.observables[entry]["distances"] = \
-                self.evaluator.results[entry][1]
-            if entry == "static_structure_factor":
-                if self.observables[entry]["static_structure_factor"] is None:
-                    self.observables[entry]["static_structure_factor"] = \
-                        self.evaluator.results[entry][0]
-                else:
-                    self.observables[entry]["static_structure_factor"] = \
-                        ((self.observables[entry]["static_structure_factor"]
-                          * (accepted_steps - 1)) +
-                         self.evaluator.results[entry][0]) / \
-                        accepted_steps
-                self.observables[entry]["kpoints"] = \
-                self.evaluator.results[entry][1]
-            if entry == "tpcf":
-                if self.observables[entry]["tpcf"] is None:
-                    self.observables[entry]["tpcf"] = \
-                        self.evaluator.results[entry][0]
-                else:
-                    self.observables[entry]["tpcf"] = \
-                        ((self.observables[entry]["tpcf"]
-                          * (accepted_steps - 1)) +
-                         self.evaluator.results[entry][0]) / \
-                        accepted_steps
-                self.observables[entry]["radii"] = \
-                self.evaluator.results[entry][1]
-            if entry == "ion_ion_energy":
-                self.observables[entry] = self.evaluator.results[entry]
+                self.observables["rdf"].append(self.evaluator.results[entry][0])
+
+                # We can just always update this.
+                self.observables["rdf_distances"] = self.evaluator.results[entry][1]
+
+            elif entry == "static_structure_factor":
+                self.observables["static_structure_factor"].append(self.evaluator.results[entry][0])
+
+                # We can just always update this.
+                self.observables["static_structure_factor_kpoints"] = self.evaluator.results[entry][1]
+            elif entry == "tpcf":
+                self.observables["tpcf"].append(self.evaluator.results[entry][0])
+
+                # We can just always update this.
+                self.observables["tpcf_radii"] = self.evaluator.results[entry][1]
+            else:
+                if entry != "total_energy":
+                    self.observables[entry].append(self.evaluator.results[entry])
 
     def _save_run(self, start_time, end_time, step_evolved):
         # Construct meta data.
@@ -396,17 +378,12 @@ class MarkovChain(MarkovChainResults):
         # file; some arrays are large and have to be saved in pickle files.
         cleaned_observables = {}
         for entry in self.observables.keys():
-            if entry == "ion_ion_energy" or entry == "total_energy":
-                cleaned_observables[entry] = self.observables[entry]
-
-            if entry == "rdf" or entry == "tpcf" or entry == "static_structure_factor":
-                filename = os.path.join(self.id, self.id+"_"+entry+".pkl")
-                with open(filename, 'wb') as handle:
-                    pickle.dump(self.observables[entry], handle, protocol=4)
-                cleaned_observables[entry] = self.id+"_"+entry+".pkl"
+            filename = os.path.join(self.id, self.id + "_" + entry + ".npy")
+            np.save(filename, self.observables[entry])
+            cleaned_observables[entry] = self.id + "_" + entry + ".npy"
 
         # Now we can save everything to pickle.
-        save_dict = {"metadata": metadata, "averaged_observables":
+        save_dict = {"metadata": metadata, "observables":
                      cleaned_observables}
         with open(os.path.join(self.path_to_folder, self.id, self.id+".json"), "w",
                   encoding="utf-8") as f:

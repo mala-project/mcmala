@@ -16,25 +16,29 @@ class MarkovChainResults:
         that will be calculated at each
         calculate_observables_after_steps-th step.
 
+
     """
-    def __init__(self, markov_chain_id="mcmala_default", additonal_observables=[],
+    def __init__(self, markov_chain_id="mcmala_default",
+                 additonal_observables=[],
                  path_to_folder="."):
         # Observables.
         self.id = str(markov_chain_id)
         self.path_to_folder = path_to_folder
-        self.observables = {"total_energy": 0.0}
+        self.observables = {"total_energy": []}
         for entry in additonal_observables:
             if entry == "rdf":
-                self.observables[entry] = {"rdf": None, "distances": None}
+                self.observables[entry] = []
+                self.observables[entry+"_distances"] = []
+            elif entry == "ion_ion_energy":
+                self.observables[entry] = []
+            elif entry == "static_structure_factor":
+                self.observables[entry] = []
+                self.observables[entry+"_kpoints"] = []
+            elif entry == "tpcf":
+                self.observables[entry] = []
+                self.observables[entry+"_radii"] = []
             else:
-                self.observables[entry] = 0.0
-            if entry == "ion_ion_energy":
-                self.observables[entry] = 0.0
-            if entry == "static_structure_factor":
-                self.observables[entry] = {"static_structure_factor": None,
-                                           "kpoints": None}
-            if entry == "tpcf":
-                self.observables[entry] = {"tpcf": None, "radii": None}
+                self.observables[entry] = []
 
         # All the accepted energies, for plotting and such.
         self.energies = None
@@ -70,7 +74,7 @@ class MarkovChainResults:
             markov_chain_data = json.load(json_file)
 
         # Now we can create the MarkovChainResults object.
-        additonal_observables = list(markov_chain_data["averaged_observables"].keys())
+        additonal_observables = list(markov_chain_data["observables"].keys())
         additonal_observables.remove("total_energy")
 
         # Load energy, if requested.
@@ -94,16 +98,15 @@ class MarkovChainResults:
             "steps_evolved"]
         self.accepted_steps = markov_chain_data["metadata"][
             "accepted_steps"]
-        for entry in markov_chain_data["averaged_observables"].keys():
+        for entry in markov_chain_data["observables"].keys():
             if entry == "ion_ion_energy" or entry == "total_energy":
-                self.observables[entry] = markov_chain_data["averaged_observables"][entry]
+                self.observables[entry] = markov_chain_data["observables"][entry]
 
             if entry == "rdf" or entry == "tpcf" or entry == "static_structure_factor":
                 filename = os.path.join(folder_to_load,
-                                        markov_chain_data["averaged_observables"][entry])
+                                        markov_chain_data["observables"][entry])
                 with open(filename, 'rb') as handle:
                     self.observables[entry] = pickle.load(handle)
-
 
     # Properties (Observables)
     @property
@@ -118,7 +121,7 @@ class MarkovChainResults:
 
     @property
     def rdf_grid(self):
-        return  self.observables["rdf"]["distances"]
+        return self.observables["rdf"]["distances"]
 
     @property
     def tpcf(self):
