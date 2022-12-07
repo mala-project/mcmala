@@ -2,7 +2,9 @@ import json
 import os
 import pickle
 
+from ase.units import J, m
 import numpy as np
+
 
 class MarkovChainResults:
     """
@@ -89,6 +91,26 @@ class MarkovChainResults:
                                     markov_chain_data["observables"][entry])
             self.observables[entry] = list(np.load(filename))
 
+    # Calculations.
+    # @todo: MOVE THIS TO A MORE LOGICAL PLACE!
+    def stress_to_pressure(self, stress, convert_to=None):
+        if len(np.shape(stress)) == 2:
+            pressure = (stress[0, 0] + stress[1, 1] + stress[2, 2]) / -3.0
+        elif len(np.shape(stress)) == 3:
+            pressure = (stress[:, 0, 0] + stress[:, 1, 1] + stress[:, 2, 2])/\
+                       -3.0
+        else:
+            raise Exception("Invalid stress tensor format.")
+
+        if convert_to == "kbar":
+            pressure *= ((m*m*m)/J)/1e8
+        elif convert_to is None:
+            pass
+        else:
+            raise Exception("Invalid pressure units selected.")
+
+        return pressure
+
     # Properties (Observables)
     @property
     def total_energy(self):
@@ -126,4 +148,9 @@ class MarkovChainResults:
     def ion_ion_energy(self):
         """Ion ion energy in eV"""
         return self.observables["ion_ion_energy"]
+
+    @property
+    def stress(self):
+        """Stress tensor in eV/A^3."""
+        return np.array(self.observables["stress"])
 
