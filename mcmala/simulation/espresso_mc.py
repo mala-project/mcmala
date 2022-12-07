@@ -2,6 +2,7 @@ from ase.calculators.calculator import all_changes
 from ase.io import write, read
 from mcmala.common.parallelizer import get_comm, get_rank, printout
 from mcmala.common.converters import kelvin_to_rydberg
+import numpy as np
 from os.path import join
 
 from mcmala.simulation.available_frameworks import is_qepy_available, \
@@ -114,7 +115,18 @@ if is_qepy_available:
                 self.create_input_file()
             self.results["energy"] = self.get_potential_energy(atoms=atoms)
             if "stress" in properties:
-                self.results["stress"] = self.get_stress(atoms)
+                stress = self.get_stress(atoms)
+                full_stress_tensor = np.zeros((3,3), dtype=stress.dtype)
+
+                # Create the full stress tensor and also get rid of the -1.0
+                # that is added by QEPy.
+                full_stress_tensor[0, 0] = stress[0]
+                full_stress_tensor[1, 1] = stress[1]
+                full_stress_tensor[2, 2] = stress[2]
+                full_stress_tensor[0, 1] = full_stress_tensor[1, 0] = stress[5]
+                full_stress_tensor[0, 2] = full_stress_tensor[2, 0] = stress[4]
+                full_stress_tensor[1, 2] = full_stress_tensor[2, 1] = stress[3]
+                self.results["stress"] = -1.0 * full_stress_tensor
 
         def calculate_properties(self, atoms, properties):
             if "rdf" in properties or "tcpf" in properties or \
