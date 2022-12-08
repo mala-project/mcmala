@@ -2,6 +2,7 @@ from ase.calculators.calculator import all_changes
 from ase.io import write, read
 from mcmala.common.parallelizer import get_comm, get_rank, printout
 from mcmala.common.converters import kelvin_to_rydberg
+from mcmala.simulation.observables_calculations import stress_to_pressure
 import numpy as np
 from os.path import join
 
@@ -114,7 +115,7 @@ if is_qepy_available:
             if not self.is_initialized:
                 self.create_input_file()
             self.results["energy"] = self.get_potential_energy(atoms=atoms)
-            if "stress" in properties:
+            if "stress" in properties or "pressure" in properties:
                 stress = self.get_stress(atoms)
                 full_stress_tensor = np.zeros((3,3), dtype=stress.dtype)
 
@@ -124,14 +125,19 @@ if is_qepy_available:
                 full_stress_tensor[0, 1] = full_stress_tensor[1, 0] = stress[5]
                 full_stress_tensor[0, 2] = full_stress_tensor[2, 0] = stress[4]
                 full_stress_tensor[1, 2] = full_stress_tensor[2, 1] = stress[3]
-                self.results["stress"] = full_stress_tensor
+
+                if "stress" in properties:
+                    self.results["stress"] = full_stress_tensor
+                if "pressure" in properties:
+                    self.results["pressure"] = \
+                        stress_to_pressure(full_stress_tensor)
 
         def calculate_properties(self, atoms, properties):
             if "rdf" in properties or "tcpf" in properties or \
-                "static_structure_factor" in properties:
+               "static_structure_factor" in properties:
                 if not is_mala_available or self.observables_calculator is None:
-                    raise Exception("Cannot calculate additional MC observables "
-                                    "without MALA present.")
+                    raise Exception("Cannot calculate additional MC "
+                                    "observables without MALA present.")
 
             if "rdf" in properties:
                 self.results["rdf"] = self.observables_calculator.\
