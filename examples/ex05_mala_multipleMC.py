@@ -6,7 +6,7 @@ from mala.datahandling.data_repo import data_repo_path
 import matplotlib.pyplot as plt
 import mcmala
 
-data_path = os.path.join(os.path.join(data_repo_path, "Be2"), "training_data")
+data_path = os.path.join(data_repo_path, "Be2")
 
 """
 ex05_mala_multipleMC: Shows how a Monte Carlo simulation can be done using
@@ -20,31 +20,22 @@ being used here.
 
 
 # Perform MC run.
-def run_mc(network, params, input_scaler, output_scaler):
+def run_mc():
     # These parameter values were not necessary for training, but are
     # necessary for inference.
-    params.targets.target_type = "LDOS"
-    params.targets.ldos_gridsize = 11
-    params.targets.ldos_gridspacing_ev = 2.5
-    params.targets.ldos_gridoffset_ev = -5
-    params.running.inference_data_grid = [18, 18, 27]
-
-    params.descriptors.descriptor_type = "SNAP"
-    params.descriptors.twojmax = 10
-    params.descriptors.rcutfac = 4.67637
-    params.targets.pseudopotential_path = os.path.join(data_repo_path, "Be2")
+    evaluator = mala.MALA.load_model("ex04")
+    evaluator.mala_parameters.targets.target_type = "LDOS"
+    evaluator.mala_parameters.targets.ldos_gridsize = 11
+    evaluator.mala_parameters.targets.ldos_gridspacing_ev = 2.5
+    evaluator.mala_parameters.targets.ldos_gridoffset_ev = -5
+    evaluator.mala_parameters.running.inference_data_grid = [18, 18, 27]
+    evaluator.mala_parameters.descriptors.descriptor_type = "SNAP"
+    evaluator.mala_parameters.descriptors.twojmax = 10
+    evaluator.mala_parameters.descriptors.rcutfac = 4.67637
+    evaluator.mala_parameters.targets.pseudopotential_path = os.path.join(data_repo_path, "Be2")
 
     # Specify how observables will be calculated.
-    params.targets.ssf_parameters = {"number_of_bins": 100, "kMax": 12.0}
-
-    # Create data handler and with it calculator.
-    inference_data_handler = mala.DataHandler(params,
-                                              input_data_scaler=input_scaler,
-                                              output_data_scaler=output_scaler)
-    evaluator = mala.MALA(params, network, inference_data_handler,
-                                   ["qe.out",
-                                    os.path.join(data_path,
-                                                 "Be_snapshot1.out")])
+    evaluator.mala_parameters.targets.ssf_parameters = {"number_of_bins": 100, "kMax": 12.0}
 
     # Initial configuration is one of the training snapshots.
     initial_configuration = read(os.path.join(data_path,
@@ -70,7 +61,7 @@ def run_mc(network, params, input_scaler, output_scaler):
                                     additonal_observables=["ion_ion_energy",
                                                            "static_structure_factor"],
                                     calculate_observables_after_steps=2)
-    simulation.run(20, print_energies=True)
+    simulation.run(20)
 
     # And we use two Markov chains.
     simulation = mcmala.MarkovChain(298.0, evaluator, suggester,
@@ -81,7 +72,7 @@ def run_mc(network, params, input_scaler, output_scaler):
                                     additonal_observables=["ion_ion_energy",
                                                            "static_structure_factor"],
                                     calculate_observables_after_steps=2)
-    simulation.run(20, print_energies=True)
+    simulation.run(20)
 
     # Now to the averaging.
     averager = mcmala.Averager()
@@ -96,10 +87,5 @@ def run_mc(network, params, input_scaler, output_scaler):
     plt.show()
 
 
-params = mala.Parameters.load_from_file("ex04_params.json")
-network = mala.Network.load_from_file(params, "ex04_network.pkl")
-input_scaler = mala.DataScaler.load_from_file("ex04_iscaler.pkl")
-output_scaler = mala.DataScaler.load_from_file("ex04_oscaler.pkl")
-
-run_mc(network, params, input_scaler, output_scaler)
+run_mc()
 
