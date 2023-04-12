@@ -241,8 +241,12 @@ class MarkovChain(MarkovChainResults):
                 self.configuration = new_configuration
 
                 # Logging.
+                uncertainty_string = ""
+                if isinstance(self.evaluator, mala.MALAUncertainty):
+                    uncertainty_string += "with uncertainty: " + \
+                        str(self.evaluator.results["energy_uncertainty"])
                 printout("Accepted step, energy is now: ",
-                         self.current_energy)
+                         self.current_energy, uncertainty_string)
 
                 if get_rank() == 0:
                     if isinstance(self.configuration, Atoms) is True:
