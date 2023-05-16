@@ -154,7 +154,7 @@ if is_qepy_available:
                 raise Exception("Non-MALA calculators cannot calculate ion-ion "
                                 "energy yet.")
 
-        def save_calculator(self, filename):
+        def save_calculator(self, filename, save_path="./"):
             """
             Saves enough information about the calculator to be reconstructed
             at a later time.
@@ -168,7 +168,7 @@ if is_qepy_available:
 
             """
             if is_mala_available and self.mala_params is not None:
-                self.mala_params.save(filename+".params.json")
+                self.mala_params.save(join(save_path, filename+".params.json"))
 
         def update_paths(self, working_directory, markov_chain_id):
             """

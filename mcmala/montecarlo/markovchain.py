@@ -125,25 +125,9 @@ class MarkovChain(MarkovChainResults):
         elif evaluator_type == "MALA":
             if is_mala_available:
                 import mala
-                params = mala.Parameters.load_from_file(
-                    os.path.join(path_to_folder, markov_chain_id,
-                                 markov_chain_id+".params.json"))
-                network = mala.Network.\
-                    load_from_file(params, os.path.join(path_to_folder, markov_chain_id,
-                                   markov_chain_id+".network.pth"))
-                iscaler = mala.DataScaler.\
-                    load_from_file(os.path.join(path_to_folder, markov_chain_id,
-                                   markov_chain_id+".iscaler.pkl"))
-                oscaler = mala.DataScaler.\
-                    load_from_file(os.path.join(path_to_folder, markov_chain_id,
-                                   markov_chain_id+".oscaler.pkl"))
-                data_handler = mala.\
-                    DataHandler(params, input_data_scaler=iscaler,
-                                output_data_scaler=oscaler)
-                reference_path = os.path.join(path_to_folder, markov_chain_id,
-                                                     markov_chain_id+".reference.json")
-                evaluator = mala.MALA(params, network, data_handler,
-                                      ["json", reference_path])
+                evaluator = mala.MALA.load_model(markov_chain_id,
+                                                 os.path.join(markov_chain_id,
+                                                              path_to_folder))
             else:
                 raise Exception("QEPy not available on this system.")
         else:
@@ -355,7 +339,7 @@ class MarkovChain(MarkovChainResults):
             json.dump(save_dict, f, ensure_ascii=False, indent=4)
 
         # Save the MALA based data of the observables.
-        self.evaluator.save_calculator(os.path.join(self.id, self.id))
+        self.evaluator.save_calculator(self.id, save_path=self.id)
 
     def __check_acceptance(self, deltaE):
         return_value = False
